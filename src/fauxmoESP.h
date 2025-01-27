@@ -76,12 +76,14 @@ THE SOFTWARE.
 
 typedef std::function<void(unsigned char, const char *, bool, unsigned char)> TSetStateCallback;
 typedef std::function<void(unsigned char, const char *, bool, unsigned char, byte *)> TSetStateWithColorCallback;
+typedef std::function<void(unsigned char, const char *, bool, unsigned char, byte *, uint16_t)> TSetStateWithColorTempCallback;
 
 typedef struct {
     char * name;
     bool state;
     unsigned char value;
     byte rgb[3] = {255, 255, 255};
+    uint16_t colorTemp = 0; // Color temperature
     char uniqueid[FAUXMO_DEVICE_UNIQUE_ID_LENGTH];
 } fauxmoesp_device_t;
 
@@ -101,10 +103,13 @@ class fauxmoESP {
         void setDeviceUniqueId(unsigned char id, const char *uniqueid);
         void onSetState(TSetStateCallback fn) { _setStateCallback = fn; }
         void onSetState(TSetStateWithColorCallback fn) { _setStateWithColorCallback = fn; }
+        void onSetState(TSetStateWithColorTempCallback fn) { _setStateWithColorTempCallback = fn; }
         bool setState(unsigned char id, bool state, unsigned char value);
         bool setState(const char * device_name, bool state, unsigned char value);
         bool setState(unsigned char id, bool state, unsigned char value, byte* rgb);
         bool setState(const char * device_name, bool state, unsigned char value, byte* rgb);
+        bool setState(unsigned char id, bool state, unsigned char value, byte* rgb = nullptr, uint16_t colorTemp = 0);
+        bool setState(const char* device_name, bool state, unsigned char value, byte* rgb = nullptr, uint16_t colorTemp = 0);
         bool process(AsyncClient *client, bool isGet, String url, String body);
         void enable(bool enable);
         void createServer(bool internal) { _internal = internal; }
@@ -125,6 +130,7 @@ class fauxmoESP {
         AsyncClient * _tcpClients[FAUXMO_TCP_MAX_CLIENTS];
         TSetStateCallback _setStateCallback = NULL;
         TSetStateWithColorCallback _setStateWithColorCallback = NULL;
+        TSetStateWithColorTempCallback _setStateWithColorTempCallback = NULL;
 
         String _deviceJson(unsigned char id, bool all); 	// all = true means we are listing all devices so use full description template
 

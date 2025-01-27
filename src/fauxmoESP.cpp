@@ -324,13 +324,15 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 				_devices[id].rgb[1] = rgb[1];
 				_devices[id].rgb[2] = rgb[2];
 			} else if ((pos = body.indexOf("ct")) > 0) {
-				_devices[id].state = true;
-				uint16_t ct = body.substring(pos+4).toInt();
-				byte* rgb = _ct2rgb(ct);
-				_devices[id].rgb[0] = rgb[0];
-				_devices[id].rgb[1] = rgb[1];
-				_devices[id].rgb[2] = rgb[2];
-			} else if (body.indexOf("false") > 0) {
+    _devices[id].state = true;
+    uint16_t ct = body.substring(pos + 4).toInt(); // Extract color temperature
+    _devices[id].colorTemp = ct; // Store it in the device
+    byte* rgb = _ct2rgb(ct);     // Convert to RGB if needed
+    _devices[id].rgb[0] = rgb[0];
+    _devices[id].rgb[1] = rgb[1];
+    _devices[id].rgb[2] = rgb[2];
+    delete[] rgb; // Free the allocated memory
+} else if (body.indexOf("false") > 0) {
 				_devices[id].state = false;
 			} else {
 				_devices[id].state = true;

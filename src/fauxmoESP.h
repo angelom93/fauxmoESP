@@ -108,8 +108,8 @@ class fauxmoESP {
         bool setState(const char * device_name, bool state, unsigned char value);
         bool setState(unsigned char id, bool state, unsigned char value, byte* rgb);
         bool setState(const char * device_name, bool state, unsigned char value, byte* rgb);
-        bool setState(unsigned char id, bool state, unsigned char value, byte* rgb = nullptr, uint16_t colorTemp = 0);
-        bool setState(const char* device_name, bool state, unsigned char value, byte* rgb = nullptr, uint16_t colorTemp = 0);
+        bool setState(unsigned char id, bool state, unsigned char value, byte* rgb, uint16_t colorTemp);
+        bool setState(const char* device_name, bool state, unsigned char value, byte* rgb, uint16_t colorTemp);
         bool process(AsyncClient *client, bool isGet, String url, String body);
         void enable(bool enable);
         void createServer(bool internal) { _internal = internal; }

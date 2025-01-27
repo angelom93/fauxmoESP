@@ -286,6 +286,8 @@ byte* fauxmoESP::_ct2rgb(uint16_t ct) {
 }
 
 bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
+	// Debug: Print the full body of the incoming message
+    DEBUG_MSG_FAUXMO("[FAUXMO] Received Body:\n%s\n", body.c_str());
 	// "devicetype" request
 	if (body.indexOf("devicetype") > 0) {
 		DEBUG_MSG_FAUXMO("[FAUXMO] Handling devicetype request\n");
@@ -324,15 +326,15 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 				_devices[id].rgb[1] = rgb[1];
 				_devices[id].rgb[2] = rgb[2];
 			} else if ((pos = body.indexOf("ct")) > 0) {
-    _devices[id].state = true;
-    uint16_t ct = body.substring(pos + 4).toInt(); // Extract color temperature
-    _devices[id].colorTemp = ct; // Store it in the device
-    byte* rgb = _ct2rgb(ct);     // Convert to RGB if needed
-    _devices[id].rgb[0] = rgb[0];
-    _devices[id].rgb[1] = rgb[1];
-    _devices[id].rgb[2] = rgb[2];
-    delete[] rgb; // Free the allocated memory
-} else if (body.indexOf("false") > 0) {
+				_devices[id].state = true;
+				uint16_t ct = body.substring(pos + 4).toInt(); // Extract color temperature
+				_devices[id].colorTemp = ct; // Store it in the device
+				byte* rgb = _ct2rgb(ct);     // Convert to RGB if needed
+				_devices[id].rgb[0] = rgb[0];
+				_devices[id].rgb[1] = rgb[1];
+				_devices[id].rgb[2] = rgb[2];
+				delete[] rgb; // Free the allocated memory
+			} else if (body.indexOf("false") > 0) {
 				_devices[id].state = false;
 			} else {
 				_devices[id].state = true;
@@ -352,6 +354,16 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 			}
 			if (_setStateWithColorCallback) {
 				_setStateWithColorCallback(id, _devices[id].name, _devices[id].state, _devices[id].value, _devices[id].rgb);
+			}
+			if (_setStateWithColorTempCallback) {
+				_setStateWithColorTempCallback(
+					id,
+					_devices[id].name,
+					_devices[id].state,
+					_devices[id].value,
+					_devices[id].rgb,
+					_devices[id].colorTemp
+				);
 			}
 
 			return true;
@@ -611,6 +623,26 @@ bool fauxmoESP::setState(unsigned char id, bool state, unsigned char value, byte
 
 bool fauxmoESP::setState(const char * device_name, bool state, unsigned char value, byte* rgb){
 	return setState(getDeviceId(device_name), state, value, rgb);
+}
+
+bool fauxmoESP::setState(unsigned char id, bool state, unsigned char value, byte* rgb, uint16_t colorTemp) {
+    if (id >= _devices.size()) return false;
+
+    // Update the device state
+    _devices[id].state = state;
+    _devices[id].value = value;
+    if (rgb) {
+        _devices[id].rgb[0] = rgb[0];
+        _devices[id].rgb[1] = rgb[1];
+        _devices[id].rgb[2] = rgb[2];
+    }
+    _devices[id].colorTemp = colorTemp; // Set color temperature
+
+    return true;
+}
+
+bool fauxmoESP::setState(const char* device_name, bool state, unsigned char value, byte* rgb, uint16_t colorTemp) {
+    return setState(getDeviceId(device_name), state, value, rgb, colorTemp);
 }
 
 // -----------------------------------------------------------------------------

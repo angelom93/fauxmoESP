@@ -52,7 +52,6 @@ PROGMEM const char FAUXMO_TCP_RGB_RESPONSE[] = "["
         "\"/lights/%d/state/on\":%s,"
         "\"/lights/%d/state/hue\":%d,"
         "\"/lights/%d/state/sat\":%d,"
-        "\"/lights/%d/state/colormode\":\"hs\""
     "}}"
 "]";
 
@@ -60,7 +59,6 @@ PROGMEM const char FAUXMO_TCP_CT_RESPONSE[] = "["
     "{\"success\":{"
         "\"/lights/%d/state/on\":%s,"
         "\"/lights/%d/state/ct\":%d,"
-        "\"/lights/%d/state/colormode\":\"ct\""
     "}}"
 "]";
 
@@ -75,11 +73,11 @@ PROGMEM const char FAUXMO_DEVICE_JSON_TEMPLATE[] = "{"
     "\"state\":{"
         "\"on\": %s,"
         "\"bri\": %d,"
-        "\"xy\": [0.0, 0.0],"  // XY color is not implemented here; keep it as [0.0, 0.0].
+        "\"xy\": [0, 0],"  // XY color is not implemented here; keep it as [0, 0].
         "\"hue\": %d,"
         "\"sat\": %d,"
         "\"effect\": \"none\","
-        "\"colormode\": \"%s\","  // Dynamic: "hs" for hue/saturation or "ct" for color temperature.
+	    "\"colormode\": \"xy\","
         "\"ct\": %d,"
         "\"mode\": \"homeautomation\","
         "\"reachable\": true"

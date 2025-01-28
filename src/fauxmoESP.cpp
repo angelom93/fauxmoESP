@@ -372,7 +372,24 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
             if ((pos = body.indexOf("bri")) > 0) {
                 unsigned char value = body.substring(pos + 5).toInt();
                 _devices[id].state = (value > 0);
-				_devices[id].value = value * 100 / 255; // Scale to 0-100
+				unsigned char bri = value * 100 / 255; // Scale to 0-100
+                _devices[id].value = bri;
+
+                responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/bri\":" + String(bri) + "}}";
+            }
+
+            // Hue and Saturation
+            if ((pos = body.indexOf("hue")) > 0) {
+                unsigned int pos_comma = body.indexOf(",", pos);
+                uint16_t hue = body.substring(pos + 5, pos_comma).toInt();
+                pos = body.indexOf("sat", pos_comma);
+                uint8_t sat = body.substring(pos + 5).toInt();
+                byte* rgb = _hs2rgb(hue, sat);
+                _devices[id].rgb[0] = rgb[0];
+                _devices[id].rgb[1] = rgb[1];
+                _devices[id].rgb[2] = rgb[2];
+                delete[] rgb;
+				_devices[id].value = bri;
 
                 responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/bri\":" + String(bri) + "}}";
             }

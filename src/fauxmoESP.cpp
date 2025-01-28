@@ -237,6 +237,7 @@ bool fauxmoESP::_onTCPList(AsyncClient *client, String url, String body) {
 	}
 
 	_sendTCPResponse(client, "200 OK", (char *) response.c_str(), "application/json");
+	DEBUG_MSG_FAUXMO("[FAUXMO] Response: %s\n", response.c_str());
 	
 	return true;
 

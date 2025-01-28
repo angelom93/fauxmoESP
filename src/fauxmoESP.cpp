@@ -415,9 +415,13 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 
         response += "]";
 
+        // Convert String to mutable char*
+        char mutableResponse[response.length() + 1];
+        response.toCharArray(mutableResponse, response.length() + 1);
+
         // Send response
-        _sendTCPResponse(client, "200 OK", response.c_str(), "application/json");
-        DEBUG_MSG_FAUXMO("[FAUXMO] Sending response: %s\n", response.c_str());
+        _sendTCPResponse(client, "200 OK", mutableResponse, "application/json");
+        DEBUG_MSG_FAUXMO("[FAUXMO] Sending response: %s\n", mutableResponse);
 
         // Invoke callbacks
         if (_setStateCallback) {

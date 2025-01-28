@@ -366,6 +366,7 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 				snprintf_P(
 					response, sizeof(response),
 					FAUXMO_TCP_BRI_RESPONSE,
+					id + 1, "true",
 					id + 1, value
 				);
 			} else if ((pos = body.indexOf("hue")) > 0) {
@@ -384,6 +385,7 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 				snprintf_P(
 					response, sizeof(response),
 					FAUXMO_TCP_RGB_RESPONSE,
+					id + 1, "true",
 					id + 1, hue,
 					id + 1, sat
 				);
@@ -399,6 +401,7 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 				snprintf_P(
 					response, sizeof(response),
 					FAUXMO_TCP_CT_RESPONSE,
+					id + 1, "true",
 					id + 1, ct
 				);
 			} else if (body.indexOf("false") > 0) {

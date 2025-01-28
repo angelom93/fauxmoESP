@@ -121,7 +121,6 @@ String fauxmoESP::_deviceJson(unsigned char id, bool all = true) {
 
     // Convert RGB to hue and saturation for reporting (Saturation in Alexa Sat 0-100%)
     byte* hs = _rgb2hs(device.rgb[0], device.rgb[1], device.rgb[2]);
-	hs[1] = (hs[1] * 100) / 255;
     if (all) {
         snprintf_P(
             buffer, sizeof(buffer),
@@ -373,8 +372,7 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
             if ((pos = body.indexOf("bri")) > 0) {
                 unsigned char value = body.substring(pos + 5).toInt();
                 _devices[id].state = (value > 0);
-				unsigned char bri = map(value, 0, 255, 0, 100);
-				_devices[id].value = bri;
+				_devices[id].value = bri * 100 / 255; // Scale to 0-100
 
                 responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/bri\":" + String(bri) + "}}";
             }
@@ -391,9 +389,8 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
                 _devices[id].rgb[1] = rgb[1];
                 _devices[id].rgb[2] = rgb[2];
                 delete[] rgb;
-				unsigned char alexaSat = map(sat, 0, 255, 0, 100); // Scale to 0-100
                 responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/hue\":" + String(hue) + "}}";
-                responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/sat\":" + String(alexaSat) + "}}";
+                responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/sat\":" + String(sat) + "}}";
             }
 
             // Color Temperature

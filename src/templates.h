@@ -85,7 +85,7 @@ PROGMEM const char FAUXMO_DEVICE_JSON_TEMPLATE[] = "{"
         "\"certified\": false,"
         "\"streaming\": {\"renderer\":true,\"proxy\":false}"
     "},"
-    "\"swversion\": \"5.105.0.21169\""
+    "\"swversion\": \"1.53.3_r27175\""
 "}";
 
 // Use shorter description template when listing all devices

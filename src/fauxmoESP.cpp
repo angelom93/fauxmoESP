@@ -207,7 +207,7 @@ unsigned long lastListResponseTime = 0; // Add as a global or class-level variab
 
 bool fauxmoESP::_onTCPList(AsyncClient *client, String url, String body) {
 	unsigned long currentMillis = millis();
-	if (millis - lastListResponseTime < 200) {
+	if (currentMillis - lastListResponseTime < 200) {
 		DEBUG_MSG_FAUXMO("[FAUXMO] Ignoring list request\n");
 		return true;
 	}

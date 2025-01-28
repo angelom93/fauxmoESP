@@ -116,7 +116,7 @@ String fauxmoESP::_deviceJson(unsigned char id, bool all = true) {
 
     fauxmoesp_device_t device = _devices[id];
 
-    DEBUG_MSG_FAUXMO("[FAUXMO] Sending device info for \"%s\", uniqueID = \"%s\"\n", device.name, device.uniqueid);
+    DEBUG_MSG_FAUXMO("[FAUXMO] Sending device info for \"%s\", uniqueID = \"%s\", complete_info = %s\n", device.name, device.uniqueid, all ? "true" : "false");
     char buffer[strlen_P(FAUXMO_DEVICE_JSON_TEMPLATE) + 256];  // Increase buffer size for safety.
 
     // Convert RGB to hue and saturation for reporting
@@ -205,7 +205,7 @@ bool fauxmoESP::_onTCPDescription(AsyncClient *client, String url, String body) 
 
 bool fauxmoESP::_onTCPList(AsyncClient *client, String url, String body) {
 
-	DEBUG_MSG_FAUXMO("[FAUXMO] Handling list request\n");
+	DEBUG_MSG_FAUXMO("[FAUXMO] Handling list request for: \n");
 
 	// Get the index
 	int pos = url.indexOf("lights");
@@ -214,12 +214,15 @@ bool fauxmoESP::_onTCPList(AsyncClient *client, String url, String body) {
 	// Get the id
 	unsigned char id = url.substring(pos+7).toInt();
 
+	// Debug: Print the full body of the incoming message
+	DEBUG_MSG_FAUXMO("[FAUXMO] Received Body:\n%s  and id = %d\n", body.c_str(), id);
+
 	// This will hold the response string	
 	String response;
 
 	// Client is requesting all devices
 	if (0 == id) {
-
+		DEBUG_MSG_FAUXMO("[FAUXMO] Sending all devices\n");
 		response += "{";
 		for (unsigned char i=0; i< _devices.size(); i++) {
 			if (i>0) response += ",";
@@ -229,6 +232,7 @@ bool fauxmoESP::_onTCPList(AsyncClient *client, String url, String body) {
 
 	// Client is requesting a single device
 	} else {
+		DEBUG_MSG_FAUXMO("[FAUXMO] Sending device %d\n", id);
 		response = _deviceJson(id-1);
 	}
 

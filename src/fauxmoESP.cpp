@@ -367,7 +367,9 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
             // Prepare response components
             char response[512]; // Adjust size as needed
             String responseData = "[";
-            bool firstEntry = true;
+
+            // Always include the "on" state line
+            responseData += "{\"success\":{\"/lights/" + String(id + 1) + "/state/on\":" + String(_devices[id].state ? "true" : "false") + "}}";
 
             // Brightness
             if ((pos = body.indexOf("bri")) > 0) {
@@ -375,9 +377,7 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
                 _devices[id].value = value;
                 _devices[id].state = (value > 0);
 
-                if (!firstEntry) responseData += ",";
-                responseData += "{\"success\":{\"/lights/" + String(id + 1) + "/state/bri\":" + String(value) + "}}";
-                firstEntry = false;
+                responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/bri\":" + String(value) + "}}";
             }
 
             // Hue and Saturation
@@ -393,10 +393,8 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
                 _devices[id].rgb[2] = rgb[2];
                 delete[] rgb;
 
-                if (!firstEntry) responseData += ",";
-                responseData += "{\"success\":{\"/lights/" + String(id + 1) + "/state/hue\":" + String(hue) + "}}";
+                responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/hue\":" + String(hue) + "}}";
                 responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/sat\":" + String(sat) + "}}";
-                firstEntry = false;
             }
 
             // Color Temperature
@@ -405,22 +403,7 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
                 uint16_t ct = body.substring(pos + 4).toInt();
                 _devices[id].colorTemp = ct;
 
-                if (!firstEntry) responseData += ",";
-                responseData += "{\"success\":{\"/lights/" + String(id + 1) + "/state/ct\":" + String(ct) + "}}";
-                firstEntry = false;
-            }
-
-            // On/Off State
-            if (body.indexOf("false") > 0) {
-                _devices[id].state = false;
-                if (!firstEntry) responseData += ",";
-                responseData += "{\"success\":{\"/lights/" + String(id + 1) + "/state/on\":false}}";
-                firstEntry = false;
-            } else if (body.indexOf("true") > 0) {
-                _devices[id].state = true;
-                if (!firstEntry) responseData += ",";
-                responseData += "{\"success\":{\"/lights/" + String(id + 1) + "/state/on\":true}}";
-                firstEntry = false;
+                responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/ct\":" + String(ct) + "}}";
             }
 
             responseData += "]";

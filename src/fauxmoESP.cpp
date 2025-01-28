@@ -356,11 +356,18 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 
 			--id;
 
+			char response[strlen_P(FAUXMO_TCP_STATE_RESPONSE) + 128];
 			// Brightness
 			if ((pos = body.indexOf("bri")) > 0) {
 				unsigned char value = body.substring(pos+5).toInt();
 				_devices[id].value = value;
 				_devices[id].state = (value > 0);
+				// create response for successful brigthness change
+				snprintf_P(
+					response, sizeof(response),
+					FAUXMO_TCP_BRI_RESPONSE,
+					id + 1, value
+				);
 			} else if ((pos = body.indexOf("hue")) > 0) {
 				_devices[id].state = true;
 				unsigned int pos_comma = body.indexOf(",", pos);
@@ -373,6 +380,13 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 				_devices[id].rgb[2] = rgb[2];
 				//reset color temperature to 0
 				_devices[id].colorTemp = 0;
+				// create response for successful color change
+				snprintf_P(
+					response, sizeof(response),
+					FAUXMO_TCP_RGB_RESPONSE,
+					id + 1, hue,
+					id + 1, sat
+				);
 			} else if ((pos = body.indexOf("ct")) > 0) {
 				_devices[id].state = true;
 				uint16_t ct = body.substring(pos + 4).toInt(); // Extract color temperature
@@ -381,24 +395,32 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 				_devices[id].rgb[0] = 255;
 				_devices[id].rgb[1] = 255;
 				_devices[id].rgb[2] = 255;
+				// create response for successful color temperature change
+				snprintf_P(
+					response, sizeof(response),
+					FAUXMO_TCP_CT_RESPONSE,
+					id + 1, ct
+				);
 			} else if (body.indexOf("false") > 0) {
 				_devices[id].state = false;
+				// create response for successful state change
+				snprintf_P(
+					response, sizeof(response),
+					FAUXMO_TCP_STATE_RESPONSE,
+					id + 1, "false"
+				);
 			} else {
 				_devices[id].state = true;
 				if (0 == _devices[id].value) _devices[id].value = 255;
+				// create response for successful state change
+				snprintf_P(
+					response, sizeof(response),
+					FAUXMO_TCP_STATE_RESPONSE,
+					id + 1, "true"
+				);
 			}
 
 			// Send response
-			char response[strlen_P(FAUXMO_TCP_STATE_RESPONSE) + 128];
-			snprintf_P(
-				response, sizeof(response),
-				FAUXMO_TCP_STATE_RESPONSE,
-				id + 1, _devices[id].state ? "true" : "false", // On/Off state
-				id + 1, _devices[id].value,                   // Brightness
-				id + 1, _rgb2hs(_devices[id].rgb[0], _devices[id].rgb[1], _devices[id].rgb[2])[0], // Hue
-				id + 1, _rgb2hs(_devices[id].rgb[0], _devices[id].rgb[1], _devices[id].rgb[2])[1], // Saturation
-				id + 1, _devices[id].colorTemp                // Color Temperature
-			);
 			_sendTCPResponse(client, "200 OK", response, "text/xml");
 
 			if (_setStateCallback) {

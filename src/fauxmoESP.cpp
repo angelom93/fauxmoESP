@@ -408,6 +408,9 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 
             // Send response
             _sendTCPResponse(client, "200 OK", (char *)responseData.c_str(), "application/json");
+			_sendTCPResponse(client, "200 OK", (char *)responseData.c_str(), "application/json");
+			_sendTCPResponse(client, "200 OK", (char *)responseData.c_str(), "application/json");
+			_sendTCPResponse(client, "200 OK", (char *)responseData.c_str(), "application/json");
             DEBUG_MSG_FAUXMO("[FAUXMO] Sending response: %s\n", responseData.c_str());
 
             // Callbacks

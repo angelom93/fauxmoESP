@@ -203,7 +203,17 @@ bool fauxmoESP::_onTCPDescription(AsyncClient *client, String url, String body) 
 
 }
 
+unsigned long lastListResponseTime = 0; // Add as a global or class-level variable
+
 bool fauxmoESP::_onTCPList(AsyncClient *client, String url, String body) {
+	unsigned long currentMillis = millis();
+    
+    // Throttle list requests (adjust delay as needed, e.g., 100ms)
+    if (currentMillis - lastListResponseTime < 100) {
+        DEBUG_MSG_FAUXMO("[FAUXMO] Throttling list request\n");
+        return true;
+    }
+    lastListResponseTime = currentMillis;
 
 	DEBUG_MSG_FAUXMO("[FAUXMO] Handling list request for: url=%s, body=%s\n", url.c_str(), body.c_str());
 
@@ -360,7 +370,7 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 			} else {
 				_devices[id].mode = 'h'; // Hue/Saturation mode
 			}            // Prepare response components
-			
+
             char response[512]; // Adjust size as needed
             String responseData = "{\"success\":{";
             bool firstEntry = true;

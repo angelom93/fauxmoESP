@@ -39,19 +39,26 @@ PROGMEM const char FAUXMO_TCP_STATE_RESPONSE[] = "["
 "]";
 
 PROGMEM const char FAUXMO_TCP_BRI_RESPONSE[] = "["
-    "{\"success\":{\"/lights/%d/state/on\":%s}},"
-    "{\"success\":{\"/lights/%d/state/bri\":%d}}"
+    "{\"success\":{"
+        "\"/lights/%d/state/on\":%s,"
+        "\"/lights/%d/state/bri\":%d"
+    "}}"
+    
 "]";
 
 PROGMEM const char FAUXMO_TCP_RGB_RESPONSE[] = "["
-    "{\"success\":{\"/lights/%d/state/on\":%s}},"
-    "{\"success\":{\"/lights/%d/state/hue\":%d}},"
-    "{\"success\":{\"/lights/%d/state/sat\":%d}}"
+    "{\"success\":{"
+        "\"/lights/%d/state/on\":%s,"
+        "\"/lights/%d/state/hue\":%d,"
+        "\"/lights/%d/state/sat\":%d"
+    "}}"
 "]";
 
 PROGMEM const char FAUXMO_TCP_CT_RESPONSE[] = "["
-    "{\"success\":{\"/lights/%d/state/on\":%s}},"
-    "{\"success\":{\"/lights/%d/state/ct\":%d}}"
+    "{\"success\":{"
+        "\"/lights/%d/state/on\":%s"
+        "\"/lights/%d/state/ct\":%d"
+    "}}"
 "]";
 
 // Working with gen1 and gen3, ON/OFF/%, gen3 requires TCP port 80

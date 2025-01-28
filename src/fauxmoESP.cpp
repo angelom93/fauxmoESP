@@ -379,8 +379,6 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 				_devices[id].rgb[0] = rgb[0];
 				_devices[id].rgb[1] = rgb[1];
 				_devices[id].rgb[2] = rgb[2];
-				//reset color temperature to 0
-				_devices[id].colorTemp = 0;
 				// create response for successful color change
 				snprintf_P(
 					response, sizeof(response),
@@ -393,10 +391,6 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 				_devices[id].state = true;
 				uint16_t ct = body.substring(pos + 4).toInt(); // Extract color temperature
 				_devices[id].colorTemp = ct; // Store it in the device
-				//reset color to only white
-				_devices[id].rgb[0] = 255;
-				_devices[id].rgb[1] = 255;
-				_devices[id].rgb[2] = 255;
 				// create response for successful color temperature change
 				snprintf_P(
 					response, sizeof(response),
@@ -424,7 +418,7 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 			}
 
 			// Send response
-			_sendTCPResponse(client, "200 OK", response, "text/xml");
+			_sendTCPResponse(client, "200 OK", response, "application/json");
 
 			if (_setStateCallback) {
 				_setStateCallback(id, _devices[id].name, _devices[id].state, _devices[id].value);

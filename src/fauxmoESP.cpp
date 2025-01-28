@@ -132,7 +132,8 @@ String fauxmoESP::_deviceJson(unsigned char id, bool all = true) {
             device.value,                    // Brightness
             hs[0],                           // Hue
             hs[1],                           // Saturation
-            device.colorTemp                 // Color temperature
+            device.colorTemp,                // Color temperature
+			device.mode == 'h' ? "hs" : device.mode == 'c' ? "ct" : "xy" // Color mode
         );
     } else {
         snprintf_P(
@@ -329,119 +330,126 @@ byte* fauxmoESP::_ct2rgb(uint16_t ct) {
 }
 
 bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
-	// Debug: Print the full body of the incoming message
+    // Debug: Print the full body of the incoming message
     DEBUG_MSG_FAUXMO("[FAUXMO] Received Body:\n%s\n", body.c_str());
-	// "devicetype" request
-	if (body.indexOf("devicetype") > 0) {
-		DEBUG_MSG_FAUXMO("[FAUXMO] Handling devicetype request\n");
-		_sendTCPResponse(client, "200 OK", (char *) "[{\"success\":{\"username\": \"2WLEDHardQrI3WHYTHoMcXHgEspsM8ZZRpSKtBQr\"}}]", "application/json");
-		return true;
-	}
 
-	// "state" request
-	if ((url.indexOf("state") > 0) && (body.length() > 0)) {
+    // "devicetype" request
+    if (body.indexOf("devicetype") > 0) {
+        DEBUG_MSG_FAUXMO("[FAUXMO] Handling devicetype request\n");
+        _sendTCPResponse(client, "200 OK", (char *)"[{\"success\":{\"username\": \"2WLEDHardQrI3WHYTHoMcXHgEspsM8ZZRpSKtBQr\"}}]", "application/json");
+        return true;
+    }
 
-		// Get the index
-		int pos = url.indexOf("lights");
-		if (-1 == pos) return false;
+    // "state" request
+    if ((url.indexOf("state") > 0) && (body.length() > 0)) {
+        // Get the index
+        int pos = url.indexOf("lights");
+        if (-1 == pos) return false;
 
-		DEBUG_MSG_FAUXMO("[FAUXMO] Handling state request\n");
+        DEBUG_MSG_FAUXMO("[FAUXMO] Handling state request\n");
 
-		// Get the index
-		unsigned char id = url.substring(pos+7).toInt();
-		if (id > 0) {
+        // Get the device ID
+        unsigned char id = url.substring(pos + 7).toInt();
+        if (id > 0) {
+            --id;
 
-			--id;
-
-			char response[strlen_P(FAUXMO_TCP_STATE_RESPONSE) + 128];
-			// Brightness
-			if ((pos = body.indexOf("bri")) > 0) {
-				unsigned char value = body.substring(pos+5).toInt();
-				_devices[id].value = value;
-				_devices[id].state = (value > 0);
-				// create response for successful brigthness change
-				snprintf_P(
-					response, sizeof(response),
-					FAUXMO_TCP_BRI_RESPONSE,
-					id + 1, "true",
-					id + 1, value
-				);
-			} else if ((pos = body.indexOf("hue")) > 0) {
-				_devices[id].state = true;
-				unsigned int pos_comma = body.indexOf(",", pos);
-				uint16_t hue = body.substring(pos+5, pos_comma).toInt();
-				pos = body.indexOf("sat", pos_comma);
-				uint8_t sat = body.substring(pos+5).toInt();
-				byte* rgb = _hs2rgb(hue, sat);
-				_devices[id].rgb[0] = rgb[0];
-				_devices[id].rgb[1] = rgb[1];
-				_devices[id].rgb[2] = rgb[2];
-				// create response for successful color change
-				snprintf_P(
-					response, sizeof(response),
-					FAUXMO_TCP_RGB_RESPONSE,
-					id + 1, "true",
-					id + 1, hue,
-					id + 1, sat
-				);
-			} else if ((pos = body.indexOf("ct")) > 0) {
-				_devices[id].state = true;
-				uint16_t ct = body.substring(pos + 4).toInt(); // Extract color temperature
-				_devices[id].colorTemp = ct; // Store it in the device
-				// create response for successful color temperature change
-				snprintf_P(
-					response, sizeof(response),
-					FAUXMO_TCP_CT_RESPONSE,
-					id + 1, "true",
-					id + 1, ct
-				);
-			} else if (body.indexOf("false") > 0) {
-				_devices[id].state = false;
-				// create response for successful state change
-				snprintf_P(
-					response, sizeof(response),
-					FAUXMO_TCP_STATE_RESPONSE,
-					id + 1, "false"
-				);
+			if (body.indexOf("\"xy\"") > 0) {
+				_devices[id].mode = 'x'; // XY mode
+			} else if (body.indexOf("\"ct\"") > 0) {
+				_devices[id].mode = 'c'; // Color temperature mode
 			} else {
-				_devices[id].state = true;
-				if (0 == _devices[id].value) _devices[id].value = 255;
-				// create response for successful state change
-				snprintf_P(
-					response, sizeof(response),
-					FAUXMO_TCP_STATE_RESPONSE,
-					id + 1, "true"
-				);
-			}
+				_devices[id].mode = 'h'; // Hue/Saturation mode
+			}            // Prepare response components
+			
+            char response[512]; // Adjust size as needed
+            String responseData = "{\"success\":{";
+            bool firstEntry = true;
+			//xy beats ct beats hue, sat
+            // Brightness
+            if ((pos = body.indexOf("bri")) > 0) {
+                unsigned char value = body.substring(pos + 5).toInt();
+                _devices[id].value = value;
+                _devices[id].state = (value > 0);
 
-			// Send response
-			_sendTCPResponse(client, "200 OK", response, "application/json");
+                if (!firstEntry) responseData += ",";
+                responseData += "\"/lights/" + String(id + 1) + "/state/bri\":" + String(value);
+                firstEntry = false;
+            }
 
-			if (_setStateCallback) {
-				_setStateCallback(id, _devices[id].name, _devices[id].state, _devices[id].value);
-			}
-			if (_setStateWithColorCallback) {
-				_setStateWithColorCallback(id, _devices[id].name, _devices[id].state, _devices[id].value, _devices[id].rgb);
-			}
-			if (_setStateWithColorTempCallback) {
-				_setStateWithColorTempCallback(
-					id,
-					_devices[id].name,
-					_devices[id].state,
-					_devices[id].value,
-					_devices[id].rgb,
-					_devices[id].colorTemp
-				);
-			}
+            // Hue and Saturation
+            if ((pos = body.indexOf("hue")) > 0) {
+                _devices[id].state = true;
+                unsigned int pos_comma = body.indexOf(",", pos);
+                uint16_t hue = body.substring(pos + 5, pos_comma).toInt();
+                pos = body.indexOf("sat", pos_comma);
+                uint8_t sat = body.substring(pos + 5).toInt();
+                byte* rgb = _hs2rgb(hue, sat);
+                _devices[id].rgb[0] = rgb[0];
+                _devices[id].rgb[1] = rgb[1];
+                _devices[id].rgb[2] = rgb[2];
+                delete[] rgb;
 
-			return true;
+                if (!firstEntry) responseData += ",";
+                responseData += "\"/lights/" + String(id + 1) + "/state/hue\":" + String(hue);
+                responseData += ",\"/lights/" + String(id + 1) + "/state/sat\":" + String(sat);
+                firstEntry = false;
+            }
 
-		}
+            // Color Temperature
+            if ((pos = body.indexOf("ct")) > 0) {
+                _devices[id].state = true;
+                uint16_t ct = body.substring(pos + 4).toInt();
+                _devices[id].colorTemp = ct;
 
-	}
+                if (!firstEntry) responseData += ",";
+                responseData += "\"/lights/" + String(id + 1) + "/state/ct\":" + String(ct);
+                firstEntry = false;
+            }
 
-	return false;
-	
+            // On/Off State
+            if (body.indexOf("false") > 0) {
+                _devices[id].state = false;
+                if (!firstEntry) responseData += ",";
+                responseData += "\"/lights/" + String(id + 1) + "/state/on\":false";
+                firstEntry = false;
+            } else if (body.indexOf("true") > 0) {
+                _devices[id].state = true;
+                if (!firstEntry) responseData += ",";
+                responseData += "\"/lights/" + String(id + 1) + "/state/on\":true";
+                firstEntry = false;
+            }
+
+            responseData += "}}";
+
+            // Copy responseData into response buffer
+            snprintf(response, sizeof(response), "[%s]", responseData.c_str());
+
+            // Send response
+            _sendTCPResponse(client, "200 OK", response, "application/json");
+
+            // Callbacks
+            if (_setStateCallback) {
+                _setStateCallback(id, _devices[id].name, _devices[id].state, _devices[id].value);
+            }
+            if (_setStateWithColorCallback) {
+                _setStateWithColorCallback(id, _devices[id].name, _devices[id].state, _devices[id].value, _devices[id].rgb);
+            }
+            if (_setStateWithColorTempCallback) {
+                _setStateWithColorTempCallback(
+                    id,
+                    _devices[id].name,
+                    _devices[id].state,
+                    _devices[id].value,
+                    _devices[id].rgb,
+                    _devices[id].colorTemp
+                );
+            }
+
+            return true;
+        }
+    }
+
+    return false;
 }
 
 bool fauxmoESP::_onTCPRequest(AsyncClient *client, bool isGet, String url, String body) {
@@ -605,6 +613,7 @@ unsigned char fauxmoESP::addDevice(const char * device_name) {
 	  device.rgb[1] = 255;
 	  device.rgb[2] = 255;
 	  device.colorTemp = 0;
+	  device.mode = 'x'; // possible bvalues 'hs', 'xy', 'ct'
 
     // create the uniqueid
     String mac = WiFi.macAddress();

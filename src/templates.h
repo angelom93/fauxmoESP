@@ -41,7 +41,8 @@ PROGMEM const char FAUXMO_TCP_STATE_RESPONSE[] = "["
 PROGMEM const char FAUXMO_TCP_BRI_RESPONSE[] = "["
     "{\"success\":{"
         "\"/lights/%d/state/on\":%s,"
-        "\"/lights/%d/state/bri\":%d"
+        "\"/lights/%d/state/bri\":%d,"
+        ""
     "}}"
     
 "]";
@@ -50,14 +51,16 @@ PROGMEM const char FAUXMO_TCP_RGB_RESPONSE[] = "["
     "{\"success\":{"
         "\"/lights/%d/state/on\":%s,"
         "\"/lights/%d/state/hue\":%d,"
-        "\"/lights/%d/state/sat\":%d"
+        "\"/lights/%d/state/sat\":%d,"
+        "\"/lights/%d/state/colormode\":\"hs\""
     "}}"
 "]";
 
 PROGMEM const char FAUXMO_TCP_CT_RESPONSE[] = "["
     "{\"success\":{"
-        "\"/lights/%d/state/on\":%s"
-        "\"/lights/%d/state/ct\":%d"
+        "\"/lights/%d/state/on\":%s,"
+        "\"/lights/%d/state/ct\":%d,"
+        "\"/lights/%d/state/colormode\":\"ct\""
     "}}"
 "]";
 

@@ -85,6 +85,7 @@ typedef struct {
     byte rgb[3] = {255, 255, 255};
     uint16_t colorTemp = 0; // Color temperature
     char uniqueid[FAUXMO_DEVICE_UNIQUE_ID_LENGTH];
+    char colorMode[3] = "hs"; // Color mode (hs or ct)
 } fauxmoesp_device_t;
 
 class fauxmoESP {

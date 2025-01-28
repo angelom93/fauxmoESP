@@ -112,34 +112,37 @@ void fauxmoESP::_sendTCPResponse(AsyncClient *client, const char * code, char * 
 }
 
 String fauxmoESP::_deviceJson(unsigned char id, bool all = true) {
+    if (id >= _devices.size()) return "{}";
 
-	if (id >= _devices.size()) return "{}";
+    fauxmoesp_device_t device = _devices[id];
 
-	fauxmoesp_device_t device = _devices[id];
+    DEBUG_MSG_FAUXMO("[FAUXMO] Sending device info for \"%s\", uniqueID = \"%s\"\n", device.name, device.uniqueid);
+    char buffer[strlen_P(FAUXMO_DEVICE_JSON_TEMPLATE) + 128];
 
-	DEBUG_MSG_FAUXMO("[FAUXMO] Sending device info for \"%s\", uniqueID = \"%s\"\n", device.name, device.uniqueid);
-	char buffer[strlen_P(FAUXMO_DEVICE_JSON_TEMPLATE) + 64];
+    // Convert RGB to hue and saturation for reporting
+    byte* hs = _rgb2hs(device.rgb[0], device.rgb[1], device.rgb[2]);
 
-	if (all)
-	{
-		snprintf_P(
-			buffer, sizeof(buffer),
-			FAUXMO_DEVICE_JSON_TEMPLATE,
-			device.name, device.uniqueid,
-			device.state ? "true": "false",
-			device.value
-		);
-	}
-	else
-	{
-		snprintf_P(
-			buffer, sizeof(buffer),
-			FAUXMO_DEVICE_JSON_TEMPLATE_SHORT,
-			device.name, device.uniqueid
-		);
-	}
+    if (all) {
+        snprintf_P(
+            buffer, sizeof(buffer),
+            FAUXMO_DEVICE_JSON_TEMPLATE,
+            device.name, device.uniqueid,
+            device.state ? "true" : "false",
+            device.value,   // Brightness
+            hs[0],          // Hue
+            hs[1],          // Saturation
+            device.colorTemp // Color temperature
+        );
+    } else {
+        snprintf_P(
+            buffer, sizeof(buffer),
+            FAUXMO_DEVICE_JSON_TEMPLATE_SHORT,
+            device.name, device.uniqueid
+        );
+    }
 
-	return String(buffer);
+    delete[] hs; // Clean up memory
+    return String(buffer);
 }
 
 String fauxmoESP::_byte2hex(uint8_t zahl)
@@ -374,17 +377,15 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 			}
 
 			// Send response
-			byte *hs = _rgb2hs(_devices[id].rgb[0], _devices[id].rgb[1], _devices[id].rgb[2]);
-			char response[strlen_P(FAUXMO_TCP_STATE_RESPONSE)+10];
+			char response[strlen_P(FAUXMO_TCP_STATE_RESPONSE) + 128];
 			snprintf_P(
 				response, sizeof(response),
 				FAUXMO_TCP_STATE_RESPONSE,
-				id+1, _devices[id].state ? "true" : "false",
-				"bri", _devices[id].value,
-				"hue", hs[0],
-				"sat", hs[1],
-				"ct", _devices[id].colorTemp
-
+				id + 1, _devices[id].state ? "true" : "false", // On/Off state
+				id + 1, _devices[id].value,                   // Brightness
+				id + 1, _rgb2hs(_devices[id].rgb[0], _devices[id].rgb[1], _devices[id].rgb[2])[0], // Hue
+				id + 1, _rgb2hs(_devices[id].rgb[0], _devices[id].rgb[1], _devices[id].rgb[2])[1], // Saturation
+				id + 1, _devices[id].colorTemp                // Color Temperature
 			);
 			_sendTCPResponse(client, "200 OK", response, "text/xml");
 

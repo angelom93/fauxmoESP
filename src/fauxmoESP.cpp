@@ -347,7 +347,7 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
     if ((url.indexOf("state") > 0) && (body.length() > 0)) {
         // Get the index
         int pos = url.indexOf("lights");
-        if (-1 == pos) return false;
+        if (pos == -1) return false;
 
         DEBUG_MSG_FAUXMO("[FAUXMO] Handling state request\n");
 
@@ -356,18 +356,19 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
         if (id > 0) {
             --id;
 
-			if (body.indexOf("\"xy\"") > 0) {
-				_devices[id].mode = 'x'; // XY mode
-			} else if (body.indexOf("\"ct\"") > 0) {
-				_devices[id].mode = 'c'; // Color temperature mode
-			} else {
-				_devices[id].mode = 'h'; // Hue/Saturation mode
-			}            // Prepare response components
+            if (body.indexOf("\"xy\"") > 0) {
+                _devices[id].mode = 'x'; // XY mode
+            } else if (body.indexOf("\"ct\"") > 0) {
+                _devices[id].mode = 'c'; // Color temperature mode
+            } else {
+                _devices[id].mode = 'h'; // Hue/Saturation mode
+            }
 
+            // Prepare response components
             char response[512]; // Adjust size as needed
-            String responseData = "{\"success\":{";
+            String responseData = "[";
             bool firstEntry = true;
-			//xy beats ct beats hue, sat
+
             // Brightness
             if ((pos = body.indexOf("bri")) > 0) {
                 unsigned char value = body.substring(pos + 5).toInt();
@@ -375,7 +376,7 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
                 _devices[id].state = (value > 0);
 
                 if (!firstEntry) responseData += ",";
-                responseData += "\"/lights/" + String(id + 1) + "/state/bri\":" + String(value);
+                responseData += "{\"success\":{\"/lights/" + String(id + 1) + "/state/bri\":" + String(value) + "}}";
                 firstEntry = false;
             }
 
@@ -393,8 +394,8 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
                 delete[] rgb;
 
                 if (!firstEntry) responseData += ",";
-                responseData += "\"/lights/" + String(id + 1) + "/state/hue\":" + String(hue);
-                responseData += ",\"/lights/" + String(id + 1) + "/state/sat\":" + String(sat);
+                responseData += "{\"success\":{\"/lights/" + String(id + 1) + "/state/hue\":" + String(hue) + "}}";
+                responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/sat\":" + String(sat) + "}}";
                 firstEntry = false;
             }
 
@@ -405,7 +406,7 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
                 _devices[id].colorTemp = ct;
 
                 if (!firstEntry) responseData += ",";
-                responseData += "\"/lights/" + String(id + 1) + "/state/ct\":" + String(ct);
+                responseData += "{\"success\":{\"/lights/" + String(id + 1) + "/state/ct\":" + String(ct) + "}}";
                 firstEntry = false;
             }
 
@@ -413,23 +414,21 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
             if (body.indexOf("false") > 0) {
                 _devices[id].state = false;
                 if (!firstEntry) responseData += ",";
-                responseData += "\"/lights/" + String(id + 1) + "/state/on\":false";
+                responseData += "{\"success\":{\"/lights/" + String(id + 1) + "/state/on\":false}}";
                 firstEntry = false;
             } else if (body.indexOf("true") > 0) {
                 _devices[id].state = true;
                 if (!firstEntry) responseData += ",";
-                responseData += "\"/lights/" + String(id + 1) + "/state/on\":true";
+                responseData += "{\"success\":{\"/lights/" + String(id + 1) + "/state/on\":true}}";
                 firstEntry = false;
             }
 
-            responseData += "}}";
-
-            // Copy responseData into response buffer
-            snprintf(response, sizeof(response), "[%s]", responseData.c_str());
+            responseData += "]";
 
             // Send response
-            _sendTCPResponse(client, "200 OK", response, "application/json");
-			DEBUG_MSG_FAUXMO("[FAUXMO] Sending response: %s\n", response);
+            _sendTCPResponse(client, "200 OK", (char *)responseData.c_str(), "application/json");
+            DEBUG_MSG_FAUXMO("[FAUXMO] Sending response: %s\n", responseData.c_str());
+
             // Callbacks
             if (_setStateCallback) {
                 _setStateCallback(id, _devices[id].name, _devices[id].state, _devices[id].value);

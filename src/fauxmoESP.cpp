@@ -382,7 +382,7 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 					FAUXMO_TCP_RGB_RESPONSE,
 					id + 1, "true",
 					id + 1, hue,
-					id + 1, sat,
+					id + 1, sat
 				);
 			} else if ((pos = body.indexOf("ct")) > 0) {
 				_devices[id].state = true;
@@ -393,7 +393,7 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 					response, sizeof(response),
 					FAUXMO_TCP_CT_RESPONSE,
 					id + 1, "true",
-					id + 1, ct,
+					id + 1, ct
 				);
 			} else if (body.indexOf("false") > 0) {
 				_devices[id].state = false;

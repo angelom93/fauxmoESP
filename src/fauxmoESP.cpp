@@ -372,7 +372,6 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
             // Brightness
             if ((pos = body.indexOf("bri")) > 0) {
                 unsigned char value = body.substring(pos + 5).toInt();
-                raw_bri = value;
                 _devices[id].state = (value > 0);
 				unsigned char bri = map(value, 0, 255, 0, 100);
 				_devices[id].value = bri;

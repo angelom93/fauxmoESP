@@ -397,8 +397,8 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 					response, sizeof(response),
 					FAUXMO_TCP_CT_RESPONSE,
 					id + 1, "true",
-					id + 1, ct
-					id + 1,
+					id + 1, ct,
+					id + 1
 				);
 			} else if (body.indexOf("false") > 0) {
 				_devices[id].state = false;

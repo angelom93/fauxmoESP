@@ -214,8 +214,6 @@ bool fauxmoESP::_onTCPList(AsyncClient *client, String url, String body) {
 	// Get the id
 	unsigned char id = url.substring(pos+7).toInt();
 
-	// Debug: Print the full body of the incoming message
-	DEBUG_MSG_FAUXMO("[FAUXMO] Received Body:\n%s  and id = %d\n", body.c_str(), id);
 
 	// This will hold the response string	
 	String response;
@@ -387,6 +385,8 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 					id + 1, hue,
 					id + 1, sat
 				);
+				// reset the color temperature
+				_devices[id].colorTemp = 0;
 			} else if ((pos = body.indexOf("ct")) > 0) {
 				_devices[id].state = true;
 				uint16_t ct = body.substring(pos + 4).toInt(); // Extract color temperature
@@ -398,6 +398,10 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 					id + 1, "true",
 					id + 1, ct
 				);
+				// reset the RGB values
+				_devices[id].rgb[0] = 0;
+				_devices[id].rgb[1] = 0;
+				_devices[id].rgb[2] = 0;
 			} else if (body.indexOf("false") > 0) {
 				_devices[id].state = false;
 				// create response for successful state change

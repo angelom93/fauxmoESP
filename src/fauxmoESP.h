@@ -82,10 +82,10 @@ typedef struct {
     char * name;
     bool state;
     unsigned char value;
-    byte rgb[3] = {255, 255, 255};
-    uint16_t colorTemp = 0; // Color temperature
+    byte rgb[3];
+    uint16_t colorTemp;
     char uniqueid[FAUXMO_DEVICE_UNIQUE_ID_LENGTH];
-    char colorMode[3] = "hs"; // Color mode (hs or ct)
+    char colorMode[3]; 
 } fauxmoesp_device_t;
 
 class fauxmoESP {

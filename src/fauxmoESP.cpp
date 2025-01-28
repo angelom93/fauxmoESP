@@ -377,7 +377,8 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 				_devices[id].rgb[0] = rgb[0];
 				_devices[id].rgb[1] = rgb[1];
 				_devices[id].rgb[2] = rgb[2];
-				_devices[id].colorMode = "hs";
+				_devices[id].colorMode[0] = 'h';
+				_devices[id].colorMode[1] = 's';
 				// create response for successful color change
 				snprintf_P(
 					response, sizeof(response),
@@ -391,7 +392,8 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 				_devices[id].state = true;
 				uint16_t ct = body.substring(pos + 4).toInt(); // Extract color temperature
 				_devices[id].colorTemp = ct; // Store it in the device
-				_devices[id].colorMode = "ct"; // Set color mode to "ct"
+				_devices[id].colorMode[0] = 'c';
+				_devices[id].colorMode[1] = 't';
 				// create response for successful color temperature change
 				snprintf_P(
 					response, sizeof(response),
@@ -606,6 +608,12 @@ unsigned char fauxmoESP::addDevice(const char * device_name) {
     device.name = strdup(device_name);
   	device.state = false;
 	  device.value = 0;
+	  device.rgb[0] = 255;
+	  device.rgb[1] = 255;
+	  device.rgb[2] = 255;
+	  device.colorTemp = 0;
+	  device.colorMode[0] = 'h';
+	  device.colorMode[1] = 's';
 
     // create the uniqueid
     String mac = WiFi.macAddress();

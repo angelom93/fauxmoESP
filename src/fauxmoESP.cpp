@@ -119,9 +119,9 @@ String fauxmoESP::_deviceJson(unsigned char id, bool all = true) {
     DEBUG_MSG_FAUXMO("[FAUXMO] Sending device info for \"%s\", uniqueID = \"%s\", complete_info = %s\n", device.name, device.uniqueid, all ? "true" : "false");
     char buffer[strlen_P(FAUXMO_DEVICE_JSON_TEMPLATE) + 256];  // Increase buffer size for safety.
 
-    // Convert RGB to hue and saturation for reporting
+    // Convert RGB to hue and saturation for reporting (Saturation in Alexa Sat 0-100%)
     byte* hs = _rgb2hs(device.rgb[0], device.rgb[1], device.rgb[2]);
-
+	hs[1] = (hs[1] * 100) / 255;
     if (all) {
         snprintf_P(
             buffer, sizeof(buffer),
@@ -203,15 +203,8 @@ bool fauxmoESP::_onTCPDescription(AsyncClient *client, String url, String body) 
 
 }
 
-unsigned long lastListResponseTime = 0; // Add as a global or class-level variable
 
 bool fauxmoESP::_onTCPList(AsyncClient *client, String url, String body) {
-	unsigned long currentMillis = millis();
-	if (currentMillis - lastListResponseTime < 200) {
-		DEBUG_MSG_FAUXMO("[FAUXMO] Ignoring list request\n");
-		return true;
-	}
-	lastListResponseTime = currentMillis;
 	DEBUG_MSG_FAUXMO("[FAUXMO] Handling list request for: url=%s, body=%s\n", url.c_str(), body.c_str());
 
 	// Get the index
@@ -379,10 +372,12 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
             // Brightness
             if ((pos = body.indexOf("bri")) > 0) {
                 unsigned char value = body.substring(pos + 5).toInt();
-                _devices[id].value = value;
+                raw_bri = value;
                 _devices[id].state = (value > 0);
+				unsigned char bri = map(value, 0, 255, 0, 100);
+				_devices[id].value = bri;
 
-                responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/bri\":" + String(value) + "}}";
+                responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/bri\":" + String(bri) + "}}";
             }
 
             // Hue and Saturation
@@ -397,9 +392,9 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
                 _devices[id].rgb[1] = rgb[1];
                 _devices[id].rgb[2] = rgb[2];
                 delete[] rgb;
-
+				unsigned char alexaSat = map(sat, 0, 255, 0, 100); // Scale to 0-100
                 responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/hue\":" + String(hue) + "}}";
-                responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/sat\":" + String(sat) + "}}";
+                responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/sat\":" + String(alexaSat) + "}}";
             }
 
             // Color Temperature

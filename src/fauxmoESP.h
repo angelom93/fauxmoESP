@@ -149,5 +149,6 @@ class fauxmoESP {
         String _byte2hex(uint8_t zahl);
         String _makeMD5(String text);
         byte* _hs2rgb(uint16_t hue, uint8_t sat);
+        byte* _rgb2hs(byte r, byte g, byte b);
         byte* _ct2rgb(uint16_t ct);
 };

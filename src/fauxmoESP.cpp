@@ -255,6 +255,43 @@ byte* fauxmoESP::_hs2rgb(uint16_t hue, uint8_t sat) {
 	return rgb;
 }
 
+byte* fauxmoESP::_rgb2hs(byte r, byte g, byte b) {
+    byte* hs = new byte[2]{0, 0};
+
+    // Normalize RGB values to [0, 1]
+    float rf = r / 255.0;
+    float gf = g / 255.0;
+    float bf = b / 255.0;
+
+    // Get max and min values of RGB
+    float maxVal = max(rf, max(gf, bf));
+    float minVal = min(rf, min(gf, bf));
+    float delta = maxVal - minVal;
+
+    // Calculate Hue
+    float h = 0;
+    if (delta > 0) {
+        if (maxVal == rf) {
+            h = fmod(((gf - bf) / delta), 6.0);
+        } else if (maxVal == gf) {
+            h = ((bf - rf) / delta) + 2.0;
+        } else {
+            h = ((rf - gf) / delta) + 4.0;
+        }
+        h *= 60.0;
+        if (h < 0) h += 360.0;
+    }
+
+    // Calculate Saturation
+    float s = (maxVal > 0) ? (delta / maxVal) : 0;
+
+    // Scale results back to your 16-bit Hue and 8-bit Saturation range
+    hs[0] = (uint16_t)((h / 360.0) * 65535.0);
+    hs[1] = (uint8_t)(s * 255.0);
+
+    return hs;
+}
+
 byte* fauxmoESP::_ct2rgb(uint16_t ct) {
 	byte *rgb = new byte[3]{0, 0, 0};
 	float temp = 10000/ ct; //kelvins = 1,000,000/mired (and that /100)
@@ -329,11 +366,6 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 				_devices[id].state = true;
 				uint16_t ct = body.substring(pos + 4).toInt(); // Extract color temperature
 				_devices[id].colorTemp = ct; // Store it in the device
-				byte* rgb = _ct2rgb(ct);     // Convert to RGB if needed
-				_devices[id].rgb[0] = rgb[0];
-				_devices[id].rgb[1] = rgb[1];
-				_devices[id].rgb[2] = rgb[2];
-				delete[] rgb; // Free the allocated memory
 			} else if (body.indexOf("false") > 0) {
 				_devices[id].state = false;
 			} else {
@@ -341,11 +373,18 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 				if (0 == _devices[id].value) _devices[id].value = 255;
 			}
 
+			// Send response
+			byte *hs = _rgb2hs(_devices[id].rgb[0], _devices[id].rgb[1], _devices[id].rgb[2]);
 			char response[strlen_P(FAUXMO_TCP_STATE_RESPONSE)+10];
 			snprintf_P(
 				response, sizeof(response),
 				FAUXMO_TCP_STATE_RESPONSE,
-				id+1, _devices[id].state ? "true" : "false"
+				id+1, _devices[id].state ? "true" : "false",
+				"bri", _devices[id].value,
+				"hue", hs[0],
+				"sat", hs[1],
+				"ct", _devices[id].colorTemp
+
 			);
 			_sendTCPResponse(client, "200 OK", response, "text/xml");
 

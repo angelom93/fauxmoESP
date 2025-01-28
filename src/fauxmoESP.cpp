@@ -117,7 +117,7 @@ String fauxmoESP::_deviceJson(unsigned char id, bool all = true) {
     fauxmoesp_device_t device = _devices[id];
 
     DEBUG_MSG_FAUXMO("[FAUXMO] Sending device info for \"%s\", uniqueID = \"%s\"\n", device.name, device.uniqueid);
-    char buffer[strlen_P(FAUXMO_DEVICE_JSON_TEMPLATE) + 128];
+    char buffer[strlen_P(FAUXMO_DEVICE_JSON_TEMPLATE) + 256];  // Increase buffer size for safety.
 
     // Convert RGB to hue and saturation for reporting
     byte* hs = _rgb2hs(device.rgb[0], device.rgb[1], device.rgb[2]);
@@ -126,12 +126,14 @@ String fauxmoESP::_deviceJson(unsigned char id, bool all = true) {
         snprintf_P(
             buffer, sizeof(buffer),
             FAUXMO_DEVICE_JSON_TEMPLATE,
-            device.name, device.uniqueid,
-            device.state ? "true" : "false",
-            device.value,   // Brightness
-            hs[0],          // Hue
-            hs[1],          // Saturation
-            device.colorTemp // Color temperature
+            device.name,                     // Device name
+            device.uniqueid,                 // Unique ID
+            device.state ? "true" : "false", // On/Off state
+            device.value,                    // Brightness
+            hs[0],                           // Hue
+            hs[1],                           // Saturation
+            "hs",                            // Color mode (always "hs" for now)
+            device.colorTemp                 // Color temperature
         );
     } else {
         snprintf_P(
@@ -141,7 +143,7 @@ String fauxmoESP::_deviceJson(unsigned char id, bool all = true) {
         );
     }
 
-    delete[] hs; // Clean up memory
+    delete[] hs; // Clean up dynamically allocated memory
     return String(buffer);
 }
 

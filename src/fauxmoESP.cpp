@@ -205,7 +205,7 @@ bool fauxmoESP::_onTCPDescription(AsyncClient *client, String url, String body) 
 
 bool fauxmoESP::_onTCPList(AsyncClient *client, String url, String body) {
 
-	DEBUG_MSG_FAUXMO("[FAUXMO] Handling list request for: \n");
+	DEBUG_MSG_FAUXMO("[FAUXMO] Handling list request for: url=%s, body=%s\n", url.c_str(), body.c_str());
 
 	// Get the index
 	int pos = url.indexOf("lights");

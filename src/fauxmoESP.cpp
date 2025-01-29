@@ -263,7 +263,7 @@ byte* fauxmoESP::_hs2rgb(uint16_t hue, uint8_t sat) {
 }
 
 byte* fauxmoESP::_rgb2hs(byte r, byte g, byte b) {
-    byte* hs = new byte[2]{0, 0};
+    uint16_t* hs = new uint16_t[2]{0, 0}; // Allocate 16-bit values
 
     // Normalize RGB values to [0, 1]
     float rf = r / 255.0;
@@ -280,23 +280,23 @@ byte* fauxmoESP::_rgb2hs(byte r, byte g, byte b) {
     if (delta > 0) {
         if (maxVal == rf) {
             h = fmod(((gf - bf) / delta), 6.0);
+            if (h < 0) h += 6.0; // Ensure positive hue
         } else if (maxVal == gf) {
             h = ((bf - rf) / delta) + 2.0;
         } else {
             h = ((rf - gf) / delta) + 4.0;
         }
-        h *= 60.0;
-        if (h < 0) h += 360.0;
+        h *= 60.0; // Convert to degrees
     }
 
     // Calculate Saturation
     float s = (maxVal > 0) ? (delta / maxVal) : 0;
 
-    // Scale results back to your 16-bit Hue and 8-bit Saturation range
-    hs[0] = (uint16_t)((h / 360.0) * 65535.0);
-    hs[1] = (uint8_t)(s * 255.0);
+    // ✅ Scale results correctly
+    hs[0] = (uint16_t)((h / 360.0) * 65534.0); // Scale to range 0-65534
+    hs[1] = (uint8_t)(s * 254.0);  // Scale saturation to 0-254
 
-    // do not allow 0 or 255 sat or 0 or 65535 hue
+    // ✅ Ensure values are within valid range
     if (hs[1] == 0) hs[1] = 1;
     if (hs[1] == 255) hs[1] = 254;
     if (hs[0] == 0) hs[0] = 1;
@@ -305,34 +305,48 @@ byte* fauxmoESP::_rgb2hs(byte r, byte g, byte b) {
     return hs;
 }
 
-byte* fauxmoESP::_ct2rgb(uint16_t ct) {
-	byte *rgb = new byte[3]{0, 0, 0};
-	float temp = 10000/ ct; //kelvins = 1,000,000/mired (and that /100)
-    float r, g, b;
+uint16_t* fauxmoESP::_rgb2hs(byte r, byte g, byte b) {
+    // ✅ Allocate an array for Hue (16-bit) and Saturation (8-bit)
+    uint16_t* hs = new uint16_t[2]{0, 0}; 
 
-    if (temp <= 66) { 
-      r = 255; 
-      g = temp;
-      g = 99.470802 * log(g) - 161.119568;
-      if (temp <= 19) {
-          b = 0;
-      } else {
-          b = temp-10;
-          b = 138.517731 * log(b) - 305.044793;
-      }
-    } else {
-      r = temp - 60;
-      r = 329.698727 * pow(r, -0.13320476);
-      g = temp - 60;
-      g = 288.12217 * pow(g, -0.07551485 );
-      b = 255;
+    // Normalize RGB values to [0, 1]
+    float rf = r / 255.0;
+    float gf = g / 255.0;
+    float bf = b / 255.0;
+
+    // Get max and min values of RGB
+    float maxVal = max(rf, max(gf, bf));
+    float minVal = min(rf, min(gf, bf));
+    float delta = maxVal - minVal;
+
+    // ✅ Calculate Hue correctly
+    float h = 0;
+    if (delta > 0) {
+        if (maxVal == rf) {
+            h = fmod(((gf - bf) / delta), 6.0);
+            if (h < 0) h += 6.0; // Ensure positive hue
+        } else if (maxVal == gf) {
+            h = ((bf - rf) / delta) + 2.0;
+        } else {
+            h = ((rf - gf) / delta) + 4.0;
+        }
+        h *= 60.0; // Convert to degrees
     }
-    
-    rgb[0] = (byte)constrain(r,0.1,255.1);
-    rgb[1] = (byte)constrain(g,0.1,255.1);
-    rgb[2] = (byte)constrain(b,0.1,255.1);
 
-	return rgb;
+    // ✅ Calculate Saturation correctly
+    float s = (maxVal > 0) ? (delta / maxVal) : 0;
+
+    // ✅ Scale results correctly
+    hs[0] = (uint16_t)((h / 360.0) * 65534.0); // Scale hue to 0-65534
+    hs[1] = (uint8_t)(s * 254.0);  // Scale saturation to 0-254
+
+    // ✅ Ensure values are within valid range
+    if (hs[1] == 0) hs[1] = 1;
+    if (hs[1] == 255) hs[1] = 254;
+    if (hs[0] == 0) hs[0] = 1;
+    if (hs[0] == 65535) hs[0] = 65534;
+
+    return hs; // ✅ Correctly return uint16_t* (16-bit array)
 }
 
 bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {

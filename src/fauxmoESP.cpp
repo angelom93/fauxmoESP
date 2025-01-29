@@ -359,6 +359,8 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
                 _devices[id].rgb[0] = rgb[0];
                 _devices[id].rgb[1] = rgb[1];
                 _devices[id].rgb[2] = rgb[2];
+                // reset color temperature
+                _devices[id].colorTemp = 0;
                 delete[] rgb;
                 rgb = nullptr; // ✅ Prevents accidental reuse
             }
@@ -368,6 +370,10 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
                 _devices[id].state = true;
                 uint16_t ct = body.substring(pos + 4).toInt();
                 _devices[id].colorTemp = ct;
+                // reset hue and saturation
+                _devices[id].rgb[0] = 0;
+                _devices[id].rgb[1] = 0;
+                _devices[id].rgb[2] = 0;
             }
 
 			char response[strlen_P(FAUXMO_TCP_STATE_RESPONSE)+10];

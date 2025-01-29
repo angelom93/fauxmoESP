@@ -378,8 +378,6 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
 			);
 			_sendTCPResponse(client, "200 OK", response, "text/xml");
 
-            DEBUG_MSG_FAUXMO("[FAUXMO] Sending response: %s\n", responseData.c_str());
-
             // Callbacks
             if (_setStateCallback) {
                 _setStateCallback(id, _devices[id].name, _devices[id].state, _devices[id].value);

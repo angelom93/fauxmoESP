@@ -350,10 +350,10 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
             if ((pos = body.indexOf("bri")) > 0) {
                 unsigned char value = body.substring(pos + 5).toInt();
                 _devices[id].state = (value > 0);
-				unsigned char bri = value * 100 / 255; // Scale to 0-100
-                _devices[id].value = bri;
+				if (value == 255) value = 254;
+                _devices[id].value = value;
 
-                responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/bri\":" + String(bri) + "}}";
+                responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/bri\":" + String(value) + "}}";
             }
 
 

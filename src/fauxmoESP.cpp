@@ -371,9 +371,9 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
                 uint16_t ct = body.substring(pos + 4).toInt();
                 _devices[id].colorTemp = ct;
                 // reset hue and saturation
-                _devices[id].rgb[0] = 0;
-                _devices[id].rgb[1] = 0;
-                _devices[id].rgb[2] = 0;
+                _devices[id].rgb[0] = 255;
+                _devices[id].rgb[1] = 255;
+                _devices[id].rgb[2] = 255;
             }
 
 			char response[strlen_P(FAUXMO_TCP_STATE_RESPONSE)+10];

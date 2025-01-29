@@ -675,6 +675,7 @@ bool fauxmoESP::setState(unsigned char id, bool state, unsigned char value, byte
 
     // Update the device state
     _devices[id].state = state;
+    if (value == 255) value = 254;
     _devices[id].value = value;
     if (rgb) {
         _devices[id].rgb[0] = rgb[0];

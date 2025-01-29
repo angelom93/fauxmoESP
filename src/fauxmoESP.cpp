@@ -296,6 +296,12 @@ byte* fauxmoESP::_rgb2hs(byte r, byte g, byte b) {
     hs[0] = (uint16_t)((h / 360.0) * 65535.0);
     hs[1] = (uint8_t)(s * 255.0);
 
+    // do not allow 0 or 255 sat or 0 or 65535 hue
+    if (hs[1] == 0) hs[1] = 1;
+    if (hs[1] == 255) hs[1] = 254;
+    if (hs[0] == 0) hs[0] = 1;
+    if (hs[0] == 65535) hs[0] = 65534;
+
     return hs;
 }
 
@@ -391,8 +397,8 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
                 _devices[id].rgb[1] = rgb[1];
                 _devices[id].rgb[2] = rgb[2];
                 delete[] rgb;
-                responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/hue\":" + String(hue) + "}}";
-                responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/sat\":" + String(sat) + "}}";
+                responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/hue\":" + String(hue+1) + "}}";
+                responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/sat\":" + String(sat-1) + "}}";
             }
 
             // Color Temperature

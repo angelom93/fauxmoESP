@@ -120,7 +120,7 @@ String fauxmoESP::_deviceJson(unsigned char id, bool all = true) {
     char buffer[strlen_P(FAUXMO_DEVICE_JSON_TEMPLATE) + 256];  // Increase buffer size for safety.
 
     // Convert RGB to hue and saturation for reporting (Saturation in Alexa Sat 0-100%)
-    byte* hs = _rgb2hs(device.rgb[0], device.rgb[1], device.rgb[2]);
+    uint16_t* hs = _rgb2hs(device.rgb[0], device.rgb[1], device.rgb[2]);
     if (all) {
         snprintf_P(
             buffer, sizeof(buffer),
@@ -262,48 +262,6 @@ byte* fauxmoESP::_hs2rgb(uint16_t hue, uint8_t sat) {
 	return rgb;
 }
 
-byte* fauxmoESP::_rgb2hs(byte r, byte g, byte b) {
-    uint16_t* hs = new uint16_t[2]{0, 0}; // Allocate 16-bit values
-
-    // Normalize RGB values to [0, 1]
-    float rf = r / 255.0;
-    float gf = g / 255.0;
-    float bf = b / 255.0;
-
-    // Get max and min values of RGB
-    float maxVal = max(rf, max(gf, bf));
-    float minVal = min(rf, min(gf, bf));
-    float delta = maxVal - minVal;
-
-    // Calculate Hue
-    float h = 0;
-    if (delta > 0) {
-        if (maxVal == rf) {
-            h = fmod(((gf - bf) / delta), 6.0);
-            if (h < 0) h += 6.0; // Ensure positive hue
-        } else if (maxVal == gf) {
-            h = ((bf - rf) / delta) + 2.0;
-        } else {
-            h = ((rf - gf) / delta) + 4.0;
-        }
-        h *= 60.0; // Convert to degrees
-    }
-
-    // Calculate Saturation
-    float s = (maxVal > 0) ? (delta / maxVal) : 0;
-
-    // ✅ Scale results correctly
-    hs[0] = (uint16_t)((h / 360.0) * 65534.0); // Scale to range 0-65534
-    hs[1] = (uint8_t)(s * 254.0);  // Scale saturation to 0-254
-
-    // ✅ Ensure values are within valid range
-    if (hs[1] == 0) hs[1] = 1;
-    if (hs[1] == 255) hs[1] = 254;
-    if (hs[0] == 0) hs[0] = 1;
-    if (hs[0] == 65535) hs[0] = 65534;
-
-    return hs;
-}
 
 uint16_t* fauxmoESP::_rgb2hs(byte r, byte g, byte b) {
     // ✅ Allocate an array for Hue (16-bit) and Saturation (8-bit)

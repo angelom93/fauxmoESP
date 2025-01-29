@@ -119,9 +119,9 @@ String fauxmoESP::_deviceJson(unsigned char id, bool all = true) {
     DEBUG_MSG_FAUXMO("[FAUXMO] Sending device info for \"%s\", uniqueID = \"%s\", complete_info = %s\n", device.name, device.uniqueid, all ? "true" : "false");
     char buffer[strlen_P(FAUXMO_DEVICE_JSON_TEMPLATE) + 256];  // Increase buffer size for safety.
 
-    // Convert RGB to hue and saturation for reporting (Saturation in Alexa Sat 0-100%)
-    uint16_t* hs = _rgb2hs(device.rgb[0], device.rgb[1], device.rgb[2]);
     if (all) {
+        // Convert RGB to hue and saturation for reporting (Saturation in Alexa Sat 0-100%)
+        uint16_t* hs = _rgb2hs(device.rgb[0], device.rgb[1], device.rgb[2]);
         snprintf_P(
             buffer, sizeof(buffer),
             FAUXMO_DEVICE_JSON_TEMPLATE,
@@ -134,6 +134,8 @@ String fauxmoESP::_deviceJson(unsigned char id, bool all = true) {
             device.colorTemp,                // Color temperature
 			device.mode == 'h' ? "hs" : device.mode == 'c' ? "ct" : "xy" // Color mode
         );
+        delete[] hs; // Clean up dynamically allocated memory
+        hs = nullptr; // ✅ Prevents accidental reuse
     } else {
         snprintf_P(
             buffer, sizeof(buffer),
@@ -142,7 +144,6 @@ String fauxmoESP::_deviceJson(unsigned char id, bool all = true) {
         );
     }
 
-    delete[] hs; // Clean up dynamically allocated memory
     return String(buffer);
 }
 
@@ -369,6 +370,7 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
                 _devices[id].rgb[1] = rgb[1];
                 _devices[id].rgb[2] = rgb[2];
                 delete[] rgb;
+                rgb = nullptr; // ✅ Prevents accidental reuse
                 responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/hue\":" + String(hue+1) + "}}";
                 responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/sat\":" + String(sat-1) + "}}";
             }

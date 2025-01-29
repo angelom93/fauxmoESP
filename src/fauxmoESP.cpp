@@ -340,23 +340,13 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
                 _devices[id].mode = 'h'; // Hue/Saturation mode
             }
 
-            // Prepare response components
-            char response[512]; // Adjust size as needed
-            String responseData = "[";
-
-            // Always include the "on" state line
-            responseData += "{\"success\":{\"/lights/" + String(id + 1) + "/state/on\":" + String(_devices[id].state ? "true" : "false") + "}}";
-
             // Brightness
             if ((pos = body.indexOf("bri")) > 0) {
                 unsigned char value = body.substring(pos + 5).toInt();
                 _devices[id].state = (value > 0);
 				if (value == 255) value = 254;
                 _devices[id].value = value;
-
-                responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/bri\":" + String(value) + "}}";
             }
-
 
             // Hue and Saturation
             if ((pos = body.indexOf("hue")) > 0) {
@@ -371,8 +361,6 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
                 _devices[id].rgb[2] = rgb[2];
                 delete[] rgb;
                 rgb = nullptr; // ✅ Prevents accidental reuse
-                responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/hue\":" + String(hue+1) + "}}";
-                responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/sat\":" + String(sat-1) + "}}";
             }
 
             // Color Temperature
@@ -380,14 +368,15 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
                 _devices[id].state = true;
                 uint16_t ct = body.substring(pos + 4).toInt();
                 _devices[id].colorTemp = ct;
-
-                responseData += ",{\"success\":{\"/lights/" + String(id + 1) + "/state/ct\":" + String(ct) + "}}";
             }
 
-            responseData += "]";
-
-            // Send response
-            _sendTCPResponse(client, "200 OK", (char *)responseData.c_str(), "application/json");
+			char response[strlen_P(FAUXMO_TCP_STATE_RESPONSE)+10];
+			snprintf_P(
+				response, sizeof(response),
+				FAUXMO_TCP_STATE_RESPONSE,
+				id+1, _devices[id].state ? "true" : "false"
+			);
+			_sendTCPResponse(client, "200 OK", response, "text/xml");
 
             DEBUG_MSG_FAUXMO("[FAUXMO] Sending response: %s\n", responseData.c_str());
 

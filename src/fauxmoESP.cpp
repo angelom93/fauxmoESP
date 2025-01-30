@@ -332,6 +332,15 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
         if (id > 0) {
             --id;
 
+            // send response fast to prevent timeouts
+			char response[strlen_P(FAUXMO_TCP_STATE_RESPONSE)+10];
+			snprintf_P(
+				response, sizeof(response),
+				FAUXMO_TCP_STATE_RESPONSE,
+				id+1, _devices[id].state ? "true" : "false"
+			);
+			_sendTCPResponse(client, "200 OK", response, "text/xml");
+
             if (body.indexOf("\"xy\"") > 0) {
                 _devices[id].mode = 'x'; // XY mode
             } else if (body.indexOf("\"ct\"") > 0) {
@@ -376,13 +385,6 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
                 _devices[id].rgb[2] = 255;
             }
 
-			char response[strlen_P(FAUXMO_TCP_STATE_RESPONSE)+10];
-			snprintf_P(
-				response, sizeof(response),
-				FAUXMO_TCP_STATE_RESPONSE,
-				id+1, _devices[id].state ? "true" : "false"
-			);
-			_sendTCPResponse(client, "200 OK", response, "text/xml");
 
             // Callbacks
             if (_setStateCallback) {

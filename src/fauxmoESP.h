@@ -75,7 +75,7 @@ THE SOFTWARE.
 #include "templates.h"
 
 typedef std::function<void(unsigned char, const char *, bool, unsigned char)> TSetStateCallback;
-typedef std::function<void(unsigned char, const char *, bool, unsigned char, unsigned char, unsigned char)> TSetStateWithColorCallback;
+typedef std::function<void(unsigned char, const char *, bool, unsigned char, unsigned uint16_t, unsigned char)> TSetStateWithColorCallback;
 typedef std::function<void(unsigned char, const char *, bool, unsigned char, unsigned char, unsigned char, uint16_t)> TSetStateWithColorTempCallback;
 
 typedef struct {

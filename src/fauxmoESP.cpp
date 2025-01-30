@@ -333,13 +333,9 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
             --id;
 
             // send response fast to prevent timeouts
-			char response[strlen_P(FAUXMO_TCP_STATE_RESPONSE)+10];
-			snprintf_P(
-				response, sizeof(response),
-				FAUXMO_TCP_STATE_RESPONSE,
-				id+1, _devices[id].state ? "true" : "false"
-			);
-			_sendTCPResponse(client, "200 OK", response, "text/xml");
+            char buf[50];
+            snprintf_P(buf, sizeof(buf), PSTR("[{\"success\":{\"/lights/%u/state/\": true}}]"), id+1, _devices[id].state ? "true" : "false");
+            _sendTCPResponse(client, "200 OK", buf, "application/json");
 
             if (body.indexOf("\"xy\"") > 0) {
                 _devices[id].mode = 'x'; // XY mode

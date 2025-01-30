@@ -132,8 +132,6 @@ String fauxmoESP::_deviceJson(unsigned char id, bool all = true) {
             device.colorTemp,                // Color temperature
 			device.mode == 'h' ? "hs" : device.mode == 'c' ? "ct" : "xy" // Color mode
         );
-        delete[] hs; // Clean up dynamically allocated memory
-        hs = nullptr; // ✅ Prevents accidental reuse
     } else {
         snprintf_P(
             buffer, sizeof(buffer),

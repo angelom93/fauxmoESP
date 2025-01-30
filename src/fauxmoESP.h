@@ -75,8 +75,8 @@ THE SOFTWARE.
 #include "templates.h"
 
 typedef std::function<void(unsigned char, const char *, bool, unsigned char)> TSetStateCallback;
-typedef std::function<void(unsigned char, const char *, bool, unsigned char, unsigned uint16_t, unsigned char)> TSetStateWithColorCallback;
-typedef std::function<void(unsigned char, const char *, bool, unsigned char, unsigned char, unsigned char, uint16_t)> TSetStateWithColorTempCallback;
+typedef std::function<void(unsigned char, const char *, bool, unsigned char, uint16_t, unsigned char)> TSetStateWithColorCallback;
+typedef std::function<void(unsigned char, const char *, bool, unsigned char, uint16_t, unsigned char, uint16_t)> TSetStateWithColorTempCallback;
 
 typedef struct {
     char * name;
@@ -108,10 +108,10 @@ class fauxmoESP {
         void onSetState(TSetStateWithColorTempCallback fn) { _setStateWithColorTempCallback = fn; }
         bool setState(unsigned char id, bool state, unsigned char value);
         bool setState(const char * device_name, bool state, unsigned char value);
-        bool setState(unsigned char id, bool state, unsigned char value, unsigned uint16_t hue, unsigned char sat);
-        bool setState(const char * device_name, bool state, unsigned char value, unsigned uint16_t hue, unsigned char sat);
-        bool setState(unsigned char id, bool state, unsigned char value, unsigned uint16_t hue, unsigned char sat, uint16_t colorTemp);
-        bool setState(const char* device_name, bool state, unsigned char value, unsigned uint16_t hue, unsigned char sat, uint16_t colorTemp);
+        bool setState(unsigned char id, bool state, unsigned char value, uint16_t hue, unsigned char sat);
+        bool setState(const char * device_name, bool state, unsigned char value, uint16_t hue, unsigned char sat);
+        bool setState(unsigned char id, bool state, unsigned char value, uint16_t hue, unsigned char sat, uint16_t colorTemp);
+        bool setState(const char* device_name, bool state, unsigned char value, uint16_t hue, unsigned char sat, uint16_t colorTemp);
         bool process(AsyncClient *client, bool isGet, String url, String body);
         void enable(bool enable);
         void createServer(bool internal) { _internal = internal; }

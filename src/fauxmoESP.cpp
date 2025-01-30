@@ -120,8 +120,6 @@ String fauxmoESP::_deviceJson(unsigned char id, bool all = true) {
     char buffer[strlen_P(FAUXMO_DEVICE_JSON_TEMPLATE) + 256];  // Increase buffer size for safety.
 
     if (all) {
-        // Convert RGB to hue and saturation for reporting (Saturation in Alexa Sat 0-100%)
-        uint16_t* hs = _rgb2hs(device.rgb[0], device.rgb[1], device.rgb[2]);
         snprintf_P(
             buffer, sizeof(buffer),
             FAUXMO_DEVICE_JSON_TEMPLATE,
@@ -129,8 +127,8 @@ String fauxmoESP::_deviceJson(unsigned char id, bool all = true) {
             device.uniqueid,                 // Unique ID
             device.state ? "true" : "false", // On/Off state
             device.value,                    // Brightness
-            hs[0],                           // Hue
-            hs[1],                           // Saturation
+            device.hue,                          // Hue
+            device.sat,                         // Saturation
             device.colorTemp,                // Color temperature
 			device.mode == 'h' ? "hs" : device.mode == 'c' ? "ct" : "xy" // Color mode
         );
@@ -241,72 +239,72 @@ bool fauxmoESP::_onTCPList(AsyncClient *client, String url, String body) {
 
 }
 
-byte* fauxmoESP::_hs2rgb(uint16_t hue, uint8_t sat) {
-	byte *rgb = new byte[3]{0, 0, 0};
+// byte* fauxmoESP::_hs2rgb(uint16_t hue, uint8_t sat) {
+// 	byte *rgb = new byte[3]{0, 0, 0};
 
-	float h = ((float)hue)/65535.0;
-    float s = ((float)sat)/255.0;
+// 	float h = ((float)hue)/65535.0;
+//     float s = ((float)sat)/255.0;
 
-    byte i = floor(h*6);
-    float f = h * 6-i;
-    float p = 255 * (1-s);
-    float q = 255 * (1-f*s);
-    float t = 255 * (1-(1-f)*s);
-    switch (i%6) {
-      case 0: rgb[0]=255,rgb[1]=t,rgb[2]=p;break;
-      case 1: rgb[0]=q,rgb[1]=255,rgb[2]=p;break;
-      case 2: rgb[0]=p,rgb[1]=255,rgb[2]=t;break;
-      case 3: rgb[0]=p,rgb[1]=q,rgb[2]=255;break;
-      case 4: rgb[0]=t,rgb[1]=p,rgb[2]=255;break;
-      case 5: rgb[0]=255,rgb[1]=p,rgb[2]=q;
-    }
-	return rgb;
-}
+//     byte i = floor(h*6);
+//     float f = h * 6-i;
+//     float p = 255 * (1-s);
+//     float q = 255 * (1-f*s);
+//     float t = 255 * (1-(1-f)*s);
+//     switch (i%6) {
+//       case 0: rgb[0]=255,rgb[1]=t,rgb[2]=p;break;
+//       case 1: rgb[0]=q,rgb[1]=255,rgb[2]=p;break;
+//       case 2: rgb[0]=p,rgb[1]=255,rgb[2]=t;break;
+//       case 3: rgb[0]=p,rgb[1]=q,rgb[2]=255;break;
+//       case 4: rgb[0]=t,rgb[1]=p,rgb[2]=255;break;
+//       case 5: rgb[0]=255,rgb[1]=p,rgb[2]=q;
+//     }
+// 	return rgb;
+// }
 
 
-uint16_t* fauxmoESP::_rgb2hs(byte r, byte g, byte b) {
-    // ✅ Allocate an array for Hue (16-bit) and Saturation (8-bit)
-    uint16_t* hs = new uint16_t[2]{0, 0}; 
+// uint16_t* fauxmoESP::_rgb2hs(byte r, byte g, byte b) {
+//     // ✅ Allocate an array for Hue (16-bit) and Saturation (8-bit)
+//     uint16_t* hs = new uint16_t[2]{0, 0}; 
 
-    // Normalize RGB values to [0, 1]
-    float rf = r / 255.0;
-    float gf = g / 255.0;
-    float bf = b / 255.0;
+//     // Normalize RGB values to [0, 1]
+//     float rf = r / 255.0;
+//     float gf = g / 255.0;
+//     float bf = b / 255.0;
 
-    // Get max and min values of RGB
-    float maxVal = max(rf, max(gf, bf));
-    float minVal = min(rf, min(gf, bf));
-    float delta = maxVal - minVal;
+//     // Get max and min values of RGB
+//     float maxVal = max(rf, max(gf, bf));
+//     float minVal = min(rf, min(gf, bf));
+//     float delta = maxVal - minVal;
 
-    // ✅ Calculate Hue correctly
-    float h = 0;
-    if (delta > 0) {
-        if (maxVal == rf) {
-            h = fmod(((gf - bf) / delta), 6.0);
-            if (h < 0) h += 6.0; // Ensure positive hue
-        } else if (maxVal == gf) {
-            h = ((bf - rf) / delta) + 2.0;
-        } else {
-            h = ((rf - gf) / delta) + 4.0;
-        }
-        h *= 60.0; // Convert to degrees
-    }
+//     // ✅ Calculate Hue correctly
+//     float h = 0;
+//     if (delta > 0) {
+//         if (maxVal == rf) {
+//             h = fmod(((gf - bf) / delta), 6.0);
+//             if (h < 0) h += 6.0; // Ensure positive hue
+//         } else if (maxVal == gf) {
+//             h = ((bf - rf) / delta) + 2.0;
+//         } else {
+//             h = ((rf - gf) / delta) + 4.0;
+//         }
+//         h *= 60.0; // Convert to degrees
+//     }
 
-    // ✅ Calculate Saturation correctly
-    float s = (maxVal > 0) ? (delta / maxVal) : 0;
+//     // ✅ Calculate Saturation correctly
+//     float s = (maxVal > 0) ? (delta / maxVal) : 0;
 
-    // ✅ Scale results correctly
-    hs[0] = (uint16_t)((h / 360.0) * 65534.0); // Scale hue to 0-65534
-    hs[1] = (uint8_t)(s * 254.0);  // Scale saturation to 0-254
+//     // ✅ Scale results correctly
+//     hs[0] = (uint16_t)((h / 360.0) * 65534.0); // Scale hue to 0-65534
+//     hs[1] = (uint8_t)(s * 254.0);  // Scale saturation to 0-254
 
-    // ✅ Ensure values are within valid range
-    if (hs[1] == 0) hs[1] = 1;
-    if (hs[1] == 255) hs[1] = 254;
-    if (hs[0] == 0) hs[0] = 1;
-    if (hs[0] == 65535) hs[0] = 65534;
+//     // ✅ Ensure values are within valid range
+//     if (hs[1] == 0) hs[1] = 1;
+//     if (hs[1] == 255) hs[1] = 254;
+//     if (hs[0] == 0) hs[0] = 1;
+//     if (hs[0] == 65535) hs[0] = 65534;
 
-    return hs; // ✅ Correctly return uint16_t* (16-bit array)
-}
+//     return hs; // ✅ Correctly return uint16_t* (16-bit array)
+// }
 
 bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
     // Debug: Print the full body of the incoming message
@@ -357,17 +355,13 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
             if ((pos = body.indexOf("hue")) > 0) {
                 _devices[id].state = true;
                 unsigned int pos_comma = body.indexOf(",", pos);
-                uint16_t hue = body.substring(pos + 5, pos_comma).toInt();
+                unsigned char hue = body.substring(pos + 5, pos_comma).toInt();
                 pos = body.indexOf("sat", pos_comma);
-                uint8_t sat = body.substring(pos + 5).toInt();
-                byte* rgb = _hs2rgb(hue, sat);
-                _devices[id].rgb[0] = rgb[0];
-                _devices[id].rgb[1] = rgb[1];
-                _devices[id].rgb[2] = rgb[2];
+                unsigned char sat = body.substring(pos + 5).toInt();
+                _devices[id].hue = hue;
+                _devices[id].sat = sat;
                 // reset color temperature
                 _devices[id].colorTemp = 0;
-                delete[] rgb;
-                rgb = nullptr; // ✅ Prevents accidental reuse
             }
 
             // Color Temperature
@@ -376,9 +370,8 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
                 uint16_t ct = body.substring(pos + 4).toInt();
                 _devices[id].colorTemp = ct;
                 // reset hue and saturation
-                _devices[id].rgb[0] = 255;
-                _devices[id].rgb[1] = 255;
-                _devices[id].rgb[2] = 255;
+                _devices[id].hue = 0;
+                _devices[id].sat = 0;
             }
 
 
@@ -387,7 +380,7 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
                 _setStateCallback(id, _devices[id].name, _devices[id].state, _devices[id].value);
             }
             if (_setStateWithColorCallback) {
-                _setStateWithColorCallback(id, _devices[id].name, _devices[id].state, _devices[id].value, _devices[id].rgb);
+                _setStateWithColorCallback(id, _devices[id].name, _devices[id].state, _devices[id].value, _devices[id].hue, _devices[id].sat);
             }
             if (_setStateWithColorTempCallback) {
                 _setStateWithColorTempCallback(
@@ -395,7 +388,8 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
                     _devices[id].name,
                     _devices[id].state,
                     _devices[id].value,
-                    _devices[id].rgb,
+                    _devices[id].hue,
+                    _devices[id].sat,
                     _devices[id].colorTemp
                 );
             }
@@ -564,9 +558,8 @@ unsigned char fauxmoESP::addDevice(const char * device_name) {
     device.name = strdup(device_name);
   	device.state = false;
 	  device.value = 0;
-	  device.rgb[0] = 255;
-	  device.rgb[1] = 255;
-	  device.rgb[2] = 255;
+      device.hue = 0;
+      device.sat = 0;
 	  device.colorTemp = 0;
 	  device.mode = 'h'; // possible bvalues 'hs', 'xy', 'ct'
 
@@ -646,40 +639,36 @@ bool fauxmoESP::setState(const char * device_name, bool state, unsigned char val
 	return setState(getDeviceId(device_name), state, value);
 }
 
-bool fauxmoESP::setState(unsigned char id, bool state, unsigned char value, byte* rgb){
-	if (id >= _devices.size()) return false;
-	bool success = setState(id, state, value);
-	if (success) {
-		_devices[id].rgb[0] = rgb[0];
-		_devices[id].rgb[1] = rgb[1];
-		_devices[id].rgb[2] = rgb[2];
-	}
-	return success;
+bool fauxmoESP::setState(unsigned char id, bool state, unsigned char value, unsigned char hue, unsigned char sat) {
+    if (id < _devices.size()) {
+        _devices[id].state = state;
+        _devices[id].value = value;
+        _devices[id].hue = hue;
+        _devices[id].sat = sat;
+        return true;
+    }
 }
 
-bool fauxmoESP::setState(const char * device_name, bool state, unsigned char value, byte* rgb){
-	return setState(getDeviceId(device_name), state, value, rgb);
+bool fauxmoESP::setState(const char * device_name, bool state, unsigned char value, unsigned char hue, unsigned char sat) {
+    return setState(getDeviceId(device_name), state, value, hue, sat);
 }
 
-bool fauxmoESP::setState(unsigned char id, bool state, unsigned char value, byte* rgb, uint16_t colorTemp) {
+bool fauxmoESP::setState(unsigned char id, bool state, unsigned char value, unsigned char hue, unsigned char sat, uint16_t colorTemp) {
     if (id >= _devices.size()) return false;
 
     // Update the device state
     _devices[id].state = state;
     if (value == 255) value = 254;
     _devices[id].value = value;
-    if (rgb) {
-        _devices[id].rgb[0] = rgb[0];
-        _devices[id].rgb[1] = rgb[1];
-        _devices[id].rgb[2] = rgb[2];
-    }
+    _devices[id].hue = hue;
+    _devices[id].sat = sat;
     _devices[id].colorTemp = colorTemp; // Set color temperature
 
     return true;
 }
 
-bool fauxmoESP::setState(const char* device_name, bool state, unsigned char value, byte* rgb, uint16_t colorTemp) {
-    return setState(getDeviceId(device_name), state, value, rgb, colorTemp);
+bool fauxmoESP::setState(const char* device_name, bool state, unsigned char value, unsigned char hue, unsigned char sat, uint16_t colorTemp) {
+    return setState(getDeviceId(device_name), state, value, hue, sat, colorTemp);
 }
 
 // -----------------------------------------------------------------------------

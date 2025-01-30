@@ -82,7 +82,7 @@ typedef struct {
     char * name;
     bool state;
     unsigned char value;
-    unsigned char hue;
+    uint16_t hue;
     unsigned char sat;
     uint16_t colorTemp;
     char uniqueid[FAUXMO_DEVICE_UNIQUE_ID_LENGTH];
@@ -108,10 +108,10 @@ class fauxmoESP {
         void onSetState(TSetStateWithColorTempCallback fn) { _setStateWithColorTempCallback = fn; }
         bool setState(unsigned char id, bool state, unsigned char value);
         bool setState(const char * device_name, bool state, unsigned char value);
-        bool setState(unsigned char id, bool state, unsigned char value, unsigned char hue, unsigned char sat);
-        bool setState(const char * device_name, bool state, unsigned char value, unsigned char hue, unsigned char sat);
-        bool setState(unsigned char id, bool state, unsigned char value, unsigned char hue, unsigned char sat, uint16_t colorTemp);
-        bool setState(const char* device_name, bool state, unsigned char value, unsigned char hue, unsigned char sat, uint16_t colorTemp);
+        bool setState(unsigned char id, bool state, unsigned char value, unsigned uint16_t hue, unsigned char sat);
+        bool setState(const char * device_name, bool state, unsigned char value, unsigned uint16_t hue, unsigned char sat);
+        bool setState(unsigned char id, bool state, unsigned char value, unsigned uint16_t hue, unsigned char sat, uint16_t colorTemp);
+        bool setState(const char* device_name, bool state, unsigned char value, unsigned uint16_t hue, unsigned char sat, uint16_t colorTemp);
         bool process(AsyncClient *client, bool isGet, String url, String body);
         void enable(bool enable);
         void createServer(bool internal) { _internal = internal; }

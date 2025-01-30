@@ -353,7 +353,7 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
             if ((pos = body.indexOf("hue")) > 0) {
                 _devices[id].state = true;
                 unsigned int pos_comma = body.indexOf(",", pos);
-                unsigned char hue = body.substring(pos + 5, pos_comma).toInt();
+                uint16_t hue = body.substring(pos + 5, pos_comma).toInt();
                 pos = body.indexOf("sat", pos_comma);
                 unsigned char sat = body.substring(pos + 5).toInt();
                 _devices[id].hue = hue;
@@ -637,7 +637,7 @@ bool fauxmoESP::setState(const char * device_name, bool state, unsigned char val
 	return setState(getDeviceId(device_name), state, value);
 }
 
-bool fauxmoESP::setState(unsigned char id, bool state, unsigned char value, unsigned char hue, unsigned char sat) {
+bool fauxmoESP::setState(unsigned char id, bool state, unsigned char value, uint16_t hue, unsigned char sat) {
     if (id < _devices.size()) {
         _devices[id].state = state;
         _devices[id].value = value;
@@ -647,11 +647,11 @@ bool fauxmoESP::setState(unsigned char id, bool state, unsigned char value, unsi
     }
 }
 
-bool fauxmoESP::setState(const char * device_name, bool state, unsigned char value, unsigned char hue, unsigned char sat) {
+bool fauxmoESP::setState(const char * device_name, bool state, unsigned char value, uint16_t hue, unsigned char sat) {
     return setState(getDeviceId(device_name), state, value, hue, sat);
 }
 
-bool fauxmoESP::setState(unsigned char id, bool state, unsigned char value, unsigned char hue, unsigned char sat, uint16_t colorTemp) {
+bool fauxmoESP::setState(unsigned char id, bool state, unsigned char value, uint16_t hue, unsigned char sat, uint16_t colorTemp) {
     if (id >= _devices.size()) return false;
 
     // Update the device state
@@ -665,7 +665,7 @@ bool fauxmoESP::setState(unsigned char id, bool state, unsigned char value, unsi
     return true;
 }
 
-bool fauxmoESP::setState(const char* device_name, bool state, unsigned char value, unsigned char hue, unsigned char sat, uint16_t colorTemp) {
+bool fauxmoESP::setState(const char* device_name, bool state, unsigned char value, uint16_t hue, unsigned char sat, uint16_t colorTemp) {
     return setState(getDeviceId(device_name), state, value, hue, sat, colorTemp);
 }
 

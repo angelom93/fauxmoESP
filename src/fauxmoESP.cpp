@@ -114,7 +114,7 @@ void fauxmoESP::_sendTCPResponse(AsyncClient *client, const char * code, char * 
 
 }
 
-String fauxmoESP::_deviceJson(unsigned char id, bool all) {
+String fauxmoESP::_deviceJson(unsigned char id, bool all = true) {
     if (id >= _devices.size()) return "{}";
 
     fauxmoesp_device_t device = _devices[id];

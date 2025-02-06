@@ -42,7 +42,9 @@ void fauxmoESP::_sendUDPResponse() {
     mac.replace(":", "");
     mac.toLowerCase();
 
-	char response[strlen(FAUXMO_UDP_RESPONSE_TEMPLATE) + 128];
+    int needed_size = snprintf(NULL, 0, FAUXMO_UDP_RESPONSE_TEMPLATE, ip[0], ip[1], ip[2], ip[3], _tcp_port, mac.c_str(), mac.c_str()) + 1;
+    char* response = (char*)malloc(needed_size);
+    snprintf(response, needed_size, FAUXMO_UDP_RESPONSE_TEMPLATE, ip[0], ip[1], ip[2], ip[3], _tcp_port, mac.c_str(), mac.c_str());
     snprintf_P(
         response, sizeof(response),
         FAUXMO_UDP_RESPONSE_TEMPLATE,
@@ -61,6 +63,7 @@ void fauxmoESP::_sendUDPResponse() {
 	#else
 	    _udp.write(response);
 	#endif
+    free(response);  // ✅ Avoids buffer overflow
     _udp.endPacket();
 
 }
@@ -111,37 +114,50 @@ void fauxmoESP::_sendTCPResponse(AsyncClient *client, const char * code, char * 
 
 }
 
-String fauxmoESP::_deviceJson(unsigned char id, bool all = true) {
+String fauxmoESP::_deviceJson(unsigned char id, bool all) {
     if (id >= _devices.size()) return "{}";
 
     fauxmoesp_device_t device = _devices[id];
 
-    DEBUG_MSG_FAUXMO("[FAUXMO] Sending device info for \"%s\", uniqueID = \"%s\", complete_info = %s\n", device.name, device.uniqueid, all ? "true" : "false");
-    char buffer[strlen_P(FAUXMO_DEVICE_JSON_TEMPLATE) + 256];  // Increase buffer size for safety.
+    DEBUG_MSG_FAUXMO("[FAUXMO] Sending device info for \"%s\", uniqueID = \"%s\", complete_info = %s\n",
+                     device.name, device.uniqueid, all ? "true" : "false");
 
+    // Step 1: Calculate the required buffer size dynamically
+    int needed_size;
     if (all) {
-        snprintf_P(
-            buffer, sizeof(buffer),
-            FAUXMO_DEVICE_JSON_TEMPLATE,
-            device.name,                     // Device name
-            device.uniqueid,                 // Unique ID
-            device.state ? "true" : "false", // On/Off state
-            device.value,                    // Brightness
-            device.hue,                          // Hue
-            device.sat,                         // Saturation
-            device.colorTemp,                // Color temperature
-			device.mode == 'h' ? "hs" : device.mode == 'c' ? "ct" : "xy" // Color mode
-        );
+        needed_size = snprintf(NULL, 0, FAUXMO_DEVICE_JSON_TEMPLATE,
+                               device.name, device.uniqueid,
+                               device.state ? "true" : "false",
+                               device.value, device.hue, device.sat, device.colorTemp,
+                               (device.mode == 'h' ? "hs" : device.mode == 'c' ? "ct" : "xy")) + 1;
     } else {
-        snprintf_P(
-            buffer, sizeof(buffer),
-            FAUXMO_DEVICE_JSON_TEMPLATE_SHORT,
-            device.name, device.uniqueid
-        );
+        needed_size = snprintf(NULL, 0, FAUXMO_DEVICE_JSON_TEMPLATE_SHORT,
+                               device.name, device.uniqueid) + 1;
     }
 
-    return String(buffer);
+    // Step 2: Allocate buffer dynamically
+    char* buffer = (char*)malloc(needed_size);
+    if (!buffer) return "{}";  // Return empty JSON if memory allocation fails
+
+    // Step 3: Fill the buffer with formatted data
+    if (all) {
+        snprintf(buffer, needed_size, FAUXMO_DEVICE_JSON_TEMPLATE,
+                 device.name, device.uniqueid,
+                 device.state ? "true" : "false",
+                 device.value, device.hue, device.sat, device.colorTemp,
+                 (device.mode == 'h' ? "hs" : device.mode == 'c' ? "ct" : "xy"));
+    } else {
+        snprintf(buffer, needed_size, FAUXMO_DEVICE_JSON_TEMPLATE_SHORT,
+                 device.name, device.uniqueid);
+    }
+
+    // Step 4: Convert to `String` and free memory
+    String jsonString = String(buffer);
+    free(buffer);
+
+    return jsonString;
 }
+
 
 String fauxmoESP::_byte2hex(uint8_t zahl)
 {
@@ -474,63 +490,64 @@ bool fauxmoESP::_onTCPData(AsyncClient *client, void *data, size_t len) {
 
 void fauxmoESP::_onTCPClient(AsyncClient *client) {
 
-	if (_enabled) {
+    if (_enabled) {
+        for (unsigned char i = 0; i < FAUXMO_TCP_MAX_CLIENTS; i++) {
+            if (!_tcpClients[i] || !_tcpClients[i]->connected()) {
 
-	    for (unsigned char i = 0; i < FAUXMO_TCP_MAX_CLIENTS; i++) {
+                // Clean up any previous disconnected client
+                if (_tcpClients[i]) {
+                    delete _tcpClients[i];  // Proper cleanup
+                }
 
-	        if (!_tcpClients[i] || !_tcpClients[i]->connected()) {
+                _tcpClients[i] = client;  // Assign new client
 
-	            _tcpClients[i] = client;
+                client->onAck([i](void *s, AsyncClient *c, size_t len, uint32_t time) {
+                    // No changes needed here
+                }, 0);
 
-	            client->onAck([i](void *s, AsyncClient *c, size_t len, uint32_t time) {
-	            }, 0);
+                client->onData([this, i](void *s, AsyncClient *c, void *data, size_t len) {
+                    _onTCPData(c, data, len);
+                }, 0);
 
-	            client->onData([this, i](void *s, AsyncClient *c, void *data, size_t len) {
-	                _onTCPData(c, data, len);
-	            }, 0);
-	            client->onDisconnect([this, i](void *s, AsyncClient *c) {
-			if(_tcpClients[i] != NULL) {
-	                    _tcpClients[i]->free();
-	                    _tcpClients[i] = NULL;
-	                }
-			else {
-	                    DEBUG_MSG_FAUXMO("[FAUXMO] Client %d already disconnected\n", i);
-	                }
-	                delete c;
-	                DEBUG_MSG_FAUXMO("[FAUXMO] Client #%d disconnected\n", i);
-	            }, 0);
+                client->onDisconnect([this, i](void *s, AsyncClient *c) {
+                    if (_tcpClients[i]) {
+                        delete _tcpClients[i];  // Proper cleanup
+                        _tcpClients[i] = nullptr;
+                    }
+                    DEBUG_MSG_FAUXMO("[FAUXMO] Client #%d disconnected\n", i);
+                }, 0);
 
-	            client->onError([i](void *s, AsyncClient *c, int8_t error) {
-	                DEBUG_MSG_FAUXMO("[FAUXMO] Error %s (%d) on client #%d\n", c->errorToString(error), error, i);
-	            }, 0);
+                client->onError([i](void *s, AsyncClient *c, int8_t error) {
+                    DEBUG_MSG_FAUXMO("[FAUXMO] Error %s (%d) on client #%d\n", c->errorToString(error), error, i);
+                }, 0);
 
-	            client->onTimeout([i](void *s, AsyncClient *c, uint32_t time) {
-	                DEBUG_MSG_FAUXMO("[FAUXMO] Timeout on client #%d at %i\n", i, time);
-	                c->close();
-	            }, 0);
+                client->onTimeout([i](void *s, AsyncClient *c, uint32_t time) {
+                    DEBUG_MSG_FAUXMO("[FAUXMO] Timeout on client #%d at %i\n", i, time);
+                    c->close();
+                }, 0);
 
-                    client->setRxTimeout(FAUXMO_RX_TIMEOUT);
+                client->setRxTimeout(FAUXMO_RX_TIMEOUT);
 
-	            DEBUG_MSG_FAUXMO("[FAUXMO] Client #%d connected\n", i);
-	            return;
+                DEBUG_MSG_FAUXMO("[FAUXMO] Client #%d connected\n", i);
+                return;
+            }
+        }
 
-	        }
+        DEBUG_MSG_FAUXMO("[FAUXMO] Rejecting - Too many connections\n");
 
-	    }
+        // If too many clients, close and delete this one immediately
+        client->close();
+        delete client;
 
-		DEBUG_MSG_FAUXMO("[FAUXMO] Rejecting - Too many connections\n");
+    } else {
+        DEBUG_MSG_FAUXMO("[FAUXMO] Rejecting - Disabled\n");
 
-	} else {
-		DEBUG_MSG_FAUXMO("[FAUXMO] Rejecting - Disabled\n");
-	}
-
-    client->onDisconnect([](void *s, AsyncClient *c) {
-        c->free();
-        delete c;
-    });
-    client->close(true);
-
+        // Cleanup client if Fauxmo is disabled
+        client->close();
+        delete client;
+    }
 }
+
 
 // -----------------------------------------------------------------------------
 // Devices

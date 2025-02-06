@@ -341,6 +341,12 @@ bool fauxmoESP::_onTCPControl(AsyncClient *client, String url, String body) {
                 _devices[id].mode = 'h'; // Hue/Saturation mode
             }
 
+            if (body.indexOf("false") > 0) {
+                _devices[id].state = false;
+            } else if (body.indexOf("true") > 0) {
+                _devices[id].state = true;
+            }
+
             // Brightness
             if ((pos = body.indexOf("bri")) > 0) {
                 unsigned char value = body.substring(pos + 5).toInt();
@@ -554,11 +560,11 @@ unsigned char fauxmoESP::addDevice(const char * device_name) {
 
     // init properties
     device.name = strdup(device_name);
-  	device.state = false;
-	  device.value = 0;
-      device.hue = 0;
-      device.sat = 0;
-	  device.colorTemp = 0;
+  	device.state = true;
+	  device.value = 100;
+      device.hue = 1;
+      device.sat = 1;
+	  device.colorTemp = 50;
 	  device.mode = 'h'; // possible bvalues 'hs', 'xy', 'ct'
 
     // create the uniqueid

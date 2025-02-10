@@ -42,9 +42,7 @@ void fauxmoESP::_sendUDPResponse() {
     mac.replace(":", "");
     mac.toLowerCase();
 
-    int needed_size = snprintf(NULL, 0, FAUXMO_UDP_RESPONSE_TEMPLATE, ip[0], ip[1], ip[2], ip[3], _tcp_port, mac.c_str(), mac.c_str()) + 1;
-    char* response = (char*)malloc(needed_size);
-    snprintf(response, needed_size, FAUXMO_UDP_RESPONSE_TEMPLATE, ip[0], ip[1], ip[2], ip[3], _tcp_port, mac.c_str(), mac.c_str());
+	char response[strlen(FAUXMO_UDP_RESPONSE_TEMPLATE) + 128];
     snprintf_P(
         response, sizeof(response),
         FAUXMO_UDP_RESPONSE_TEMPLATE,
@@ -63,7 +61,6 @@ void fauxmoESP::_sendUDPResponse() {
 	#else
 	    _udp.write(response);
 	#endif
-    free(response);  // ✅ Avoids buffer overflow
     _udp.endPacket();
 
 }

@@ -34,6 +34,6 @@
       "platforms": "rp2040"
     }
   ],
-  "headers": "FauxmoESP.h",
+  "headers": "fauxmoESP.h",
   "srcFilter": "+<src/>"
 }
